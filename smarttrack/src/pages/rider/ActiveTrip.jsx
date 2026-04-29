@@ -1,9 +1,11 @@
+// ActiveTrip shows a live map of the rider's ongoing trip, polls Firestore for status
+// changes, animates a mock driver approaching the pickup, and lets the rider cancel.
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { doc, onSnapshot, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
-import { useTrip } from '../../context/TripContext'
+import { useTrip } from '../../context/useTrip'
 import { haversineKm } from '../../utils/distance'
 import PlusCodeChip from '../../components/PlusCodeChip'
 

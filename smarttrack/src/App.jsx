@@ -1,3 +1,5 @@
+// Root component. Wraps the whole app in Auth, Demo, and Trip context providers,
+// declares all routes, and falls back to /login for unknown paths.
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { TripProvider } from './context/TripContext'

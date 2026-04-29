@@ -1,9 +1,11 @@
-import { createContext, useContext, useState } from 'react'
-
-const DemoContext = createContext(null)
+// DemoProvider lets any component switch between 'rider' and 'driver' view
+// without changing the user's real Firebase auth role — useful for demos.
+import { useState } from 'react'
+import DemoContext from './demoContext'
 
 export function DemoProvider({ children }) {
-  const [demoView, setDemoView] = useState(null) // 'rider' | 'driver' | null
+  // null = use the real auth role; 'rider'|'driver' overrides the visible view
+  const [demoView, setDemoView] = useState(null)
 
   return (
     <DemoContext.Provider value={{ demoView, setDemoView }}>
@@ -11,5 +13,3 @@ export function DemoProvider({ children }) {
     </DemoContext.Provider>
   )
 }
-
-export const useDemo = () => useContext(DemoContext)

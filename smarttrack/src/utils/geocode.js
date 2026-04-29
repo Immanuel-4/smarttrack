@@ -1,3 +1,5 @@
+// Returns a human-readable area label for a GPS coordinate using the Nominatim API.
+// Tries suburb → neighbourhood → city_district → town → city → county → first word of display_name.
 export async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(

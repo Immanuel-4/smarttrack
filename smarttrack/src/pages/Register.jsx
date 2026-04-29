@@ -1,3 +1,5 @@
+// Register page. Creates a Firebase Auth account and writes the user's profile
+// (name, email, userType, rating, totalTrips) to Firestore, then redirects to their dashboard.
 import { useState } from 'react'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'

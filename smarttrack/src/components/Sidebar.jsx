@@ -1,7 +1,9 @@
+// Desktop sidebar shown on md+ screens inside both rider and driver layouts.
+// Displays the app brand, role-specific nav links, user info, and a sign-out button.
 import { NavLink, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 const riderLinks = [
   { to: '/rider', label: 'Home', icon: '🏠' },

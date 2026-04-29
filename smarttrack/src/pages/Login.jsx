@@ -1,3 +1,5 @@
+// Login page. Signs the user in with Firebase Auth, reads their Firestore profile
+// to determine their role, and redirects to /driver or /rider accordingly.
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'

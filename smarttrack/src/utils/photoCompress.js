@@ -1,3 +1,6 @@
+// Compresses an image File to under maxKB by resizing to 1200px max dimension
+// and iteratively reducing JPEG quality in 0.1 steps until the target size is met.
+// Resolves with { dataUrl, base64, sizeKB }.
 export function compressPhoto(file, maxKB = 200) {
   return new Promise((resolve, reject) => {
     const img = new Image()

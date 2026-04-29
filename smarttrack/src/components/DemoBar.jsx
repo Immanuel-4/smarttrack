@@ -1,5 +1,7 @@
-import { useDemo } from '../context/DemoContext'
-import { useAuth } from '../context/AuthContext'
+// Top banner rendered in both layouts that lets users switch between rider and driver views.
+// The active view is sourced from DemoContext (manual override) or the user's real role.
+import { useDemo } from '../context/useDemo'
+import { useAuth } from '../context/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 export default function DemoBar() {
@@ -7,6 +9,7 @@ export default function DemoBar() {
   const { profile } = useAuth()
   const navigate = useNavigate()
 
+  // Fall back to the user's real role when no demo override is active
   const effectiveView = demoView || profile?.userType?.toLowerCase()
 
   const switchTo = (view) => {

@@ -1,3 +1,4 @@
+// Entry point. Mounts the React app into #root with StrictMode enabled.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

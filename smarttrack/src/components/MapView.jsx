@@ -1,7 +1,10 @@
+// Reusable Leaflet map wrapper. Initialises the map once on mount, tears it down on
+// unmount, and re-centres whenever the center/zoom props change.
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 
-// Fix default marker icons broken by Vite bundling
+// Vite's bundler strips the internal path resolution Leaflet uses to find its default
+// marker images, so we point it at the CDN copies instead.
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',

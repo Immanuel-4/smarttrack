@@ -1,3 +1,5 @@
+// Thin wrappers around the open-location-code library for encoding GPS coordinates
+// to a 10-digit Plus Code and decoding/validating Plus Codes.
 import { OpenLocationCode } from 'open-location-code'
 
 const olc = new OpenLocationCode()

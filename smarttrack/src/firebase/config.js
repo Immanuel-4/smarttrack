@@ -1,3 +1,4 @@
+// Initialises Firebase and exports the Auth and Firestore instances used throughout the app.
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'

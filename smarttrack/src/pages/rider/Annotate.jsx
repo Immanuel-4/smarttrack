@@ -1,6 +1,8 @@
+// Annotate lets the rider attach a landmark note and a compressed photo to their
+// pickup location before proceeding to the booking summary screen.
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTrip } from '../../context/TripContext'
+import { useTrip } from '../../context/useTrip'
 import { compressPhoto } from '../../utils/photoCompress'
 import PlusCodeChip from '../../components/PlusCodeChip'
 

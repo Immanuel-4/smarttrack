@@ -1,3 +1,5 @@
+// Mobile-only bottom navigation bar. Renders rider or driver links depending on userType,
+// and highlights the active route. Hidden on md+ screens where the Sidebar is used instead.
 import { NavLink } from 'react-router-dom'
 
 const riderLinks = [

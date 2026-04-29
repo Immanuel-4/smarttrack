@@ -1,7 +1,9 @@
+// IncomingRequest subscribes in real-time to PENDING trips and lets the driver
+// cycle through them, accept one (writing their UID to the trip doc), or decline.
 import { useEffect, useState } from 'react'
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PlusCodeChip from '../../components/PlusCodeChip'
 

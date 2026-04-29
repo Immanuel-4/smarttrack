@@ -1,3 +1,6 @@
+// Navigate shows the driver a live map with a compass and distance to the rider's
+// pickup point. The driver arrow rotates to face the destination using bearingDeg.
+// Pressing "Arrived" sets the trip to IN_PROGRESS; "Complete" sets it to COMPLETED.
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore'

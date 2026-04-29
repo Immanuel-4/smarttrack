@@ -1,8 +1,10 @@
+// Driver dashboard. Shows a live map with the driver's GPS position, an online/offline
+// toggle that writes to Firestore, and a stats panel with today's earnings and recent trips.
 import { useEffect, useRef, useState } from 'react'
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 
 export default function DriverHome() {
   const { user, profile, setProfile } = useAuth()

@@ -1,36 +1,38 @@
+// Layout wrapper for all /rider routes. Redirects unauthenticated users to /login
+// and composes the demo bar, desktop sidebar, and mobile bottom nav.
 import { Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { useDemo } from '../context/DemoContext'
+import { useAuth } from '../context/useAuth'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import DemoBar from './DemoBar'
 import { useEffect } from 'react'
 
 export default function RiderLayout() {
-  const { user, profile, loading } = useAuth()
-  const { demoView } = useDemo()
+  const { user, loading } = useAuth()
   const navigate = useNavigate()
 
+  // Redirect to login as soon as auth resolves and there is no signed-in user
   useEffect(() => {
     if (!loading && !user) navigate('/login')
-  }, [user, loading])
+  }, [user, loading, navigate])
 
+  // Render nothing while Firebase auth state is still being determined
   if (loading || !user) return null
 
   return (
     <div className="flex flex-col h-screen">
       <DemoBar />
       <div className="flex flex-1 overflow-hidden">
-        {/* Desktop sidebar */}
+        {/* Desktop sidebar — hidden on mobile */}
         <div className="hidden md:flex">
           <Sidebar userType="rider" />
         </div>
-        {/* Main content */}
+        {/* Child route content renders here */}
         <main className="flex-1 overflow-hidden relative">
           <Outlet />
         </main>
       </div>
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — hidden on md+ screens */}
       <BottomNav userType="rider" />
     </div>
   )

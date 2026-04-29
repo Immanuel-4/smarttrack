@@ -1,8 +1,10 @@
+// PinAdjust shows a full-screen map where the rider can drag or pan to fine-tune
+// the pickup pin. The Plus Code updates live as the map center moves.
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import { encodePlusCode } from '../../utils/plusCode'
-import { useTrip } from '../../context/TripContext'
+import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
 
 export default function PinAdjust() {

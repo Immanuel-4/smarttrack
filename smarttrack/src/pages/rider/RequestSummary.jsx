@@ -1,9 +1,12 @@
+// RequestSummary shows the pickup details and ride type picker before the rider
+// confirms the booking. On confirm it creates the Firestore trip document and
+// navigates to the ActiveTrip screen.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { useAuth } from '../../context/AuthContext'
-import { useTrip } from '../../context/TripContext'
+import { useAuth } from '../../context/useAuth'
+import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
 
 const RIDE_TYPES = [

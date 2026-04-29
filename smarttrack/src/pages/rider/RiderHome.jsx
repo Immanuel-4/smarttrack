@@ -1,9 +1,12 @@
+// RiderHome is the map-first pickup screen. The draggable pin follows the map center,
+// generates a live Plus Code, and reverse-geocodes an area label. Pressing "Drop pin"
+// saves the location to TripContext and advances to the annotation step.
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import { encodePlusCode } from '../../utils/plusCode'
 import { reverseGeocode } from '../../utils/geocode'
-import { useTrip } from '../../context/TripContext'
+import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
 
 const DEFAULT_CENTER = [6.5244, 3.3792] // Lagos
