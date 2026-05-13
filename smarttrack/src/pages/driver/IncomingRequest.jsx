@@ -1,11 +1,10 @@
-// IncomingRequest subscribes in real-time to PENDING trips and lets the driver
-// cycle through them, accept one (writing their UID to the trip doc), or decline.
 import { useEffect, useState } from 'react'
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import { Check, X, Radio, FileText } from 'lucide-react'
 
 export default function IncomingRequest() {
   const { user } = useAuth()
@@ -51,11 +50,11 @@ export default function IncomingRequest() {
 
   if (requests.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-white">
         <div className="text-center p-8 max-w-sm">
-          <div className="text-6xl mb-4 animate-pulse">📡</div>
-          <p className="text-lg font-semibold text-gray-800 mb-2">Waiting for requests…</p>
-          <p className="text-sm text-gray-500">You'll see new trip requests here in real-time</p>
+          <Radio size={32} strokeWidth={1} className="text-zinc-300 mx-auto mb-4" />
+          <p className="text-sm font-medium text-zinc-900 mb-1">Waiting for requests</p>
+          <p className="text-xs text-zinc-500">New trip requests will appear here in real-time</p>
         </div>
       </div>
     )
@@ -64,51 +63,55 @@ export default function IncomingRequest() {
   const loc = trip.pickup_location
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
+    <div className="h-full overflow-y-auto bg-zinc-50">
       <div className="max-w-lg mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between pt-2">
-          <h1 className="text-lg font-semibold text-gray-800">New request</h1>
-          <span className="text-sm text-gray-500">{current + 1}/{requests.length}</span>
+          <h1 className="text-base font-medium text-zinc-900">New request</h1>
+          <span className="text-xs text-zinc-400">{current + 1} / {requests.length}</span>
         </div>
 
         {/* Trip type badge */}
         <div className="flex items-center gap-2">
-          <span className="bg-primary-light text-primary text-sm font-medium px-3 py-1 rounded-full">
+          <span className="bg-zinc-100 text-zinc-700 text-xs font-medium px-2.5 py-1 rounded-md">
             {trip.rideType || 'Economy'}
           </span>
-          <span className="text-xs text-gray-500">Rider trip</span>
         </div>
 
         {/* Location card */}
         <div className="card space-y-3">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Pickup</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Pickup</p>
           <PlusCodeChip code={loc?.plus_code} size="lg" />
-          {loc?.area_label && <p className="text-sm font-medium text-gray-700">{loc.area_label}</p>}
+          {loc?.area_label && <p className="text-sm text-zinc-700">{loc.area_label}</p>}
           {loc?.user_note && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-xs text-amber-700 font-medium mb-1">📝 Landmark note</p>
-              <p className="text-sm text-amber-800">{loc.user_note}</p>
+            <div className="border-l-2 border-zinc-300 pl-3">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <FileText size={12} strokeWidth={1.5} className="text-zinc-400" />
+                <span className="text-xs text-zinc-400">Landmark note</span>
+              </div>
+              <p className="text-sm text-zinc-600">{loc.user_note}</p>
             </div>
           )}
           {loc?.photo_base64 && (
             <div>
-              <p className="text-xs text-gray-500 mb-2">Pickup photo</p>
+              <p className="text-xs text-zinc-400 mb-1.5">Pickup photo</p>
               <img
                 src={`data:image/jpeg;base64,${loc.photo_base64}`}
                 alt="Pickup"
-                className="w-full h-40 object-cover rounded-lg"
+                className="w-full h-40 object-cover rounded-md border border-zinc-200"
               />
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={handleDecline} className="btn-secondary">
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={handleDecline} className="btn-secondary flex items-center justify-center gap-1.5">
+            <X size={14} strokeWidth={1.5} />
             Decline
           </button>
-          <button onClick={handleAccept} disabled={accepting} className="btn-primary" style={{ width: 'auto' }}>
-            {accepting ? 'Accepting…' : '✓ Accept'}
+          <button onClick={handleAccept} disabled={accepting} className="btn-primary flex items-center justify-center gap-1.5">
+            <Check size={14} strokeWidth={1.5} />
+            {accepting ? 'Accepting…' : 'Accept'}
           </button>
         </div>
       </div>

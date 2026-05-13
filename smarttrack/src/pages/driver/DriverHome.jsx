@@ -1,10 +1,9 @@
-// Driver dashboard. Shows a live map with the driver's GPS position, an online/offline
-// toggle that writes to Firestore, and a stats panel with today's earnings and recent trips.
 import { useEffect, useRef, useState } from 'react'
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
+import { Radio, TrendingUp, Clock } from 'lucide-react'
 
 export default function DriverHome() {
   const { user, profile, setProfile } = useAuth()
@@ -16,7 +15,6 @@ export default function DriverHome() {
   const mapRef = useRef(null)
   const driverMarkerRef = useRef(null)
 
-  // Fetch today's completed trips
   useEffect(() => {
     if (!user) return
     const fetchData = async () => {
@@ -28,12 +26,11 @@ export default function DriverHome() {
       const snap = await getDocs(q)
       const trips = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       setRecentTrips(trips.slice(0, 5))
-      setEarnings(trips.length * 850) // mock ₦850 per trip
+      setEarnings(trips.length * 850)
     }
     fetchData()
   }, [user])
 
-  // Map
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
     const map = L.map(mapContainer.current, { zoomControl: false }).setView([6.5244, 3.3792], 14)
@@ -45,7 +42,7 @@ export default function DriverHome() {
 
     const driverIcon = L.divIcon({
       className: '',
-      html: '<div style="background:#1D9E75;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🚗</div>',
+      html: '<div style="background:#18181b;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid white;font-size:16px">&#9650;</div>',
       iconSize: [36, 36], iconAnchor: [18, 18],
     })
 
@@ -95,41 +92,56 @@ export default function DriverHome() {
           <button
             onClick={handleToggleOnline}
             disabled={toggling}
-            className={`px-5 py-2.5 rounded-full font-semibold text-sm shadow-lg transition-colors ${
-              online ? 'bg-primary text-white' : 'bg-white text-gray-700 border border-gray-300'
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
+              online
+                ? 'bg-white border-green-200 text-green-700 hover:bg-green-50'
+                : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
             }`}
           >
-            {toggling ? '…' : online ? '🟢 Online' : '⚫ Go Online'}
+            <Radio
+              size={14}
+              strokeWidth={1.5}
+              className={online ? 'text-green-600' : 'text-zinc-400'}
+            />
+            {toggling ? '…' : online ? 'Online' : 'Go online'}
           </button>
         </div>
       </div>
 
       {/* Stats panel */}
-      <div className="md:w-80 bg-white border-t md:border-t-0 md:border-l border-gray-200 overflow-y-auto p-4 space-y-4">
+      <div className="md:w-80 bg-white border-t md:border-t-0 md:border-l border-zinc-200 overflow-y-auto p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-primary">₦{earnings.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">Today's earnings</p>
+          <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <TrendingUp size={14} strokeWidth={1.5} className="text-zinc-400" />
+            </div>
+            <p className="text-lg font-medium text-zinc-900">₦{earnings.toLocaleString()}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Today's earnings</p>
           </div>
-          <div className="card text-center">
-            <p className="text-2xl font-bold text-gray-800">{recentTrips.length}</p>
-            <p className="text-xs text-gray-500 mt-1">Completed trips</p>
+          <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Clock size={14} strokeWidth={1.5} className="text-zinc-400" />
+            </div>
+            <p className="text-lg font-medium text-zinc-900">{recentTrips.length}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Completed trips</p>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-gray-700 mb-3">Recent trips</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Recent trips</p>
           {recentTrips.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <p className="text-3xl mb-2">🚗</p>
-              <p className="text-sm">No trips yet today</p>
+            <div className="text-center py-8">
+              <p className="text-sm text-zinc-400">No trips yet today</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-zinc-100">
               {recentTrips.map(t => (
-                <div key={t.id} className="card">
-                  <p className="text-xs font-mono text-primary">{t.pickup_location?.plus_code}</p>
-                  <p className="text-xs text-gray-500 mt-1">{t.pickup_location?.area_label}</p>
+                <div key={t.id} className="py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-mono text-zinc-900">{t.pickup_location?.plus_code}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">{t.pickup_location?.area_label}</p>
+                  </div>
+                  <span className="text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-md">Done</span>
                 </div>
               ))}
             </div>

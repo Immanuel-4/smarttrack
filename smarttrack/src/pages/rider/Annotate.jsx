@@ -1,10 +1,9 @@
-// Annotate lets the rider attach a landmark note and a compressed photo to their
-// pickup location before proceeding to the booking summary screen.
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTrip } from '../../context/useTrip'
 import { compressPhoto } from '../../utils/photoCompress'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import { Camera, X, ArrowLeft } from 'lucide-react'
 
 export default function Annotate() {
   const navigate = useNavigate()
@@ -43,31 +42,33 @@ export default function Annotate() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-lg mx-auto p-4 pb-24 space-y-5">
+    <div className="h-full overflow-y-auto bg-zinc-50">
+      <div className="max-w-lg mx-auto p-4 pb-24 space-y-4">
         <div className="flex items-center gap-3 pt-2">
-          <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-700">←</button>
-          <h1 className="text-lg font-semibold text-gray-800">Add pickup details</h1>
+          <button onClick={() => navigate(-1)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
+            <ArrowLeft size={16} strokeWidth={1.5} />
+          </button>
+          <h1 className="text-base font-medium text-zinc-900">Add pickup details</h1>
         </div>
 
         {/* Plus code */}
         <div className="card">
-          <p className="text-xs text-gray-500 mb-2">Confirmed pickup location</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Confirmed location</p>
           <PlusCodeChip code={pickupLocation.plus_code} size="lg" />
           {pickupLocation.area_label && (
-            <p className="text-sm text-gray-600 mt-2">{pickupLocation.area_label}</p>
+            <p className="text-sm text-zinc-600 mt-2">{pickupLocation.area_label}</p>
           )}
           <button
             onClick={() => navigate('/rider/pin')}
-            className="text-xs text-primary mt-2 hover:underline block"
+            className="text-xs text-zinc-500 mt-2 hover:text-zinc-900 transition-colors block"
           >
-            Adjust pin →
+            Adjust pin
           </button>
         </div>
 
         {/* Landmark note */}
         <div className="card space-y-2">
-          <label className="text-sm font-medium text-gray-700">Landmark / note for driver</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Landmark note for driver</label>
           <textarea
             value={note}
             onChange={e => setNote(e.target.value)}
@@ -81,34 +82,50 @@ export default function Annotate() {
         <div className="card space-y-3">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Pickup photo</p>
-              <p className="text-xs text-gray-500 mt-0.5">📸 Face outward toward the street so the driver can spot you</p>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Pickup photo</p>
+              <p className="text-xs text-zinc-400 mt-1">Face outward toward the street so the driver can spot you</p>
             </div>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={compressing}
-              className="text-primary text-sm font-medium hover:underline shrink-0"
+              className="text-xs font-medium text-zinc-700 hover:text-zinc-900 transition-colors shrink-0"
             >
               {compressing ? 'Compressing…' : photo ? 'Change' : 'Add photo'}
             </button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
 
+          {!photo && (
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={compressing}
+              className="w-full border border-dashed border-zinc-300 rounded-lg bg-zinc-50 py-8 flex flex-col items-center gap-2 hover:bg-zinc-100 transition-colors"
+            >
+              <Camera size={20} strokeWidth={1.5} className="text-zinc-400" />
+              <span className="text-xs text-zinc-400">Tap to add a photo</span>
+            </button>
+          )}
+
           {photo && (
             <div className="relative">
-              <img src={photo} alt="pickup" className="w-full h-48 object-cover rounded-lg" />
+              <img src={photo} alt="pickup" className="w-full h-48 object-cover rounded-md border border-zinc-200" />
               {photoInfo && (
-                <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-                  {photoInfo.sizeKB}KB · compressed
+                <span className="absolute bottom-2 right-2 bg-zinc-900/70 text-white text-xs px-2 py-0.5 rounded-md">
+                  {photoInfo.sizeKB}KB
                 </span>
               )}
-              <button onClick={() => { setPhoto(null); setPhotoInfo(null) }} className="absolute top-2 right-2 bg-white/80 rounded-full p-1 text-gray-600 hover:bg-white">✕</button>
+              <button
+                onClick={() => { setPhoto(null); setPhotoInfo(null) }}
+                className="absolute top-2 right-2 bg-white border border-zinc-200 rounded-md p-1 text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                <X size={14} strokeWidth={1.5} />
+              </button>
             </div>
           )}
         </div>
 
         <button onClick={handleContinue} className="btn-primary">
-          Continue to summary →
+          Continue to summary
         </button>
       </div>
     </div>

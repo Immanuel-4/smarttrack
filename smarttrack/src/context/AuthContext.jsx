@@ -9,11 +9,23 @@ import { auth, db } from '../firebase/config'
 import AuthContext from './authContext'
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS === 'true'
+    console.log('DEV_BYPASS:', DEV_BYPASS) 
+  
+  const [user, setUser] = useState(DEV_BYPASS ? { uid: 'dev-user' } : null)
+  const [profile, setProfile] = useState(DEV_BYPASS ? {
+    email: 'kola@gmail.com',
+    name: 'bola lanre',
+    rating: 5,
+    totalTrips: 0,
+    userType: 'Rider',
+    createdAt: new Date(),
+  } : null)
+  const [loading, setLoading] = useState(DEV_BYPASS ? false : true)
 
   useEffect(() => {
+    if (DEV_BYPASS) return // skip Firebase entirely
+
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser) {

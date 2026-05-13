@@ -1,11 +1,10 @@
-// PinAdjust shows a full-screen map where the rider can drag or pan to fine-tune
-// the pickup pin. The Plus Code updates live as the map center moves.
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import { encodePlusCode } from '../../utils/plusCode'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import { ArrowLeft } from 'lucide-react'
 
 export default function PinAdjust() {
   const navigate = useNavigate()
@@ -57,24 +56,24 @@ export default function PinAdjust() {
 
       {/* Crosshair */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[999]">
-        <div className="w-0.5 h-10 bg-primary absolute" />
-        <div className="h-0.5 w-10 bg-primary absolute" />
-        <div className="w-4 h-4 border-2 border-primary rounded-full absolute bg-white" />
+        <div className="w-px h-10 bg-zinc-900 absolute opacity-70" />
+        <div className="h-px w-10 bg-zinc-900 absolute opacity-70" />
+        <div className="w-4 h-4 border-2 border-zinc-900 rounded-full absolute bg-white" />
       </div>
 
       {/* Confirm button */}
       <div className="absolute bottom-6 left-4 right-4 z-[1000]">
-        <button onClick={handleConfirm} className="btn-primary shadow-lg">
+        <button onClick={handleConfirm} className="btn-primary">
           Confirm this location
         </button>
       </div>
 
-      {/* Back */}
+      {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="absolute top-4 left-4 z-[1000] bg-white shadow border border-gray-200 text-sm font-medium text-gray-700 px-3 py-2 rounded-lg"
+        className="absolute top-4 left-4 z-[1000] bg-white border border-zinc-200 text-zinc-700 rounded-md p-2 hover:bg-zinc-50 transition-colors"
       >
-        ← Back
+        <ArrowLeft size={16} strokeWidth={1.5} />
       </button>
     </div>
   )

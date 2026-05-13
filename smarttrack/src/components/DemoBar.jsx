@@ -1,5 +1,3 @@
-// Top banner rendered in both layouts that lets users switch between rider and driver views.
-// The active view is sourced from DemoContext (manual override) or the user's real role.
 import { useDemo } from '../context/useDemo'
 import { useAuth } from '../context/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -9,7 +7,6 @@ export default function DemoBar() {
   const { profile } = useAuth()
   const navigate = useNavigate()
 
-  // Fall back to the user's real role when no demo override is active
   const effectiveView = demoView || profile?.userType?.toLowerCase()
 
   const switchTo = (view) => {
@@ -18,26 +15,32 @@ export default function DemoBar() {
   }
 
   return (
-    <div className="bg-gray-900 text-white text-xs px-4 py-2 flex items-center justify-between">
-      <span className="font-semibold text-primary">SmartTrack Demo</span>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-400">View as:</span>
-        <button
-          onClick={() => switchTo('rider')}
-          className={`px-3 py-1 rounded-full transition-colors ${
-            effectiveView === 'rider' ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          Rider
-        </button>
-        <button
-          onClick={() => switchTo('driver')}
-          className={`px-3 py-1 rounded-full transition-colors ${
-            effectiveView === 'driver' ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          Driver
-        </button>
+    <div className="bg-white border-b border-zinc-200 px-4 py-2 flex items-center justify-between">
+      <span className="text-xs font-medium text-zinc-900 tracking-wide">SmartTrack</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-zinc-400 mr-1">View as</span>
+        <div className="flex rounded-md border border-zinc-200 overflow-hidden">
+          <button
+            onClick={() => switchTo('rider')}
+            className={`px-3 py-1 text-xs font-medium transition-colors ${
+              effectiveView === 'rider'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-500 hover:bg-zinc-50'
+            }`}
+          >
+            Rider
+          </button>
+          <button
+            onClick={() => switchTo('driver')}
+            className={`px-3 py-1 text-xs font-medium transition-colors border-l border-zinc-200 ${
+              effectiveView === 'driver'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-500 hover:bg-zinc-50'
+            }`}
+          >
+            Driver
+          </button>
+        </div>
       </div>
     </div>
   )

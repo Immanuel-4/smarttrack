@@ -1,19 +1,20 @@
-// Desktop sidebar shown on md+ screens inside both rider and driver layouts.
-// Displays the app brand, role-specific nav links, user info, and a sign-out button.
 import { NavLink, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
 import { useAuth } from '../context/useAuth'
+import { Home, Car, LayoutDashboard, Clock, Navigation, User } from 'lucide-react'
 
 const riderLinks = [
-  { to: '/rider', label: 'Home', icon: '🏠' },
-  { to: '/rider/active', label: 'Active Trip', icon: '🚗' },
+  { to: '/rider', label: 'Home', Icon: Home },
+  { to: '/rider/active', label: 'Active Trip', Icon: Navigation },
+  { to: '/rider/history', label: 'Trip History', Icon: Clock },
+  { to: '/rider/account', label: 'Account', Icon: User },
 ]
 
 const driverLinks = [
-  { to: '/driver', label: 'Dashboard', icon: '📊' },
-  { to: '/driver/requests', label: 'Requests', icon: '📋' },
-  { to: '/driver/navigate', label: 'Navigate', icon: '🧭' },
+  { to: '/driver', label: 'Dashboard', Icon: LayoutDashboard },
+  { to: '/driver/requests', label: 'Requests', Icon: Clock },
+  { to: '/driver/navigate', label: 'Navigate', Icon: Navigation },
 ]
 
 export default function Sidebar({ userType }) {
@@ -27,38 +28,42 @@ export default function Sidebar({ userType }) {
   }
 
   return (
-    <aside className="w-60 bg-white border-r border-gray-200 flex flex-col h-full shrink-0">
-      <div className="p-6 border-b border-gray-100">
-        <div className="text-primary font-bold text-xl">SmartTrack</div>
-        <div className="text-xs text-gray-500 mt-1 capitalize">{userType} dashboard</div>
+    <aside className="w-60 bg-white border-r border-zinc-200 flex flex-col h-full shrink-0">
+      <div className="p-5 border-b border-zinc-100">
+        <div className="text-zinc-900 font-medium text-base">SmartTrack</div>
+        <div className="text-xs text-zinc-400 mt-0.5 capitalize">{userType} dashboard</div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {links.map(({ to, label, icon }) => (
+      <nav className="flex-1 p-2 space-y-0.5">
+        {links.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/rider' || to === '/driver'}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm transition-colors ${
                 isActive
-                  ? 'bg-primary-light text-primary'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-zinc-100 text-zinc-900 font-medium'
+                  : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
               }`
             }
           >
-            <span>{icon}</span>
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+                {label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-100">
-        <div className="text-sm font-medium text-gray-700 mb-1">{profile?.name}</div>
-        <div className="text-xs text-gray-400 mb-3">{profile?.email}</div>
+      <div className="p-4 border-t border-zinc-100">
+        <div className="text-sm font-medium text-zinc-900 mb-0.5">{profile?.name}</div>
+        <div className="text-xs text-zinc-400 mb-3">{profile?.email}</div>
         <button
           onClick={handleLogout}
-          className="text-sm text-red-500 hover:text-red-600 font-medium"
+          className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
         >
           Sign out
         </button>

@@ -1,10 +1,10 @@
-// Login page. Signs the user in with Firebase Auth, reads their Firestore profile
-// to determine their role, and redirects to /driver or /rider accordingly.
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 import { useNavigate, Link } from 'react-router-dom'
+
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS === 'true'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -12,6 +12,10 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (DEV_BYPASS) navigate('/rider', { replace: true })
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,24 +34,22 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-4xl font-bold text-primary mb-2">SmartTrack</div>
-          <p className="text-gray-500 text-sm">Ride smarter in Nigerian cities</p>
+        <div className="mb-8">
+          <div className="text-2xl font-medium text-zinc-900 mb-1">SmartTrack</div>
+          <p className="text-sm text-zinc-500">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-4">
-          <h2 className="text-xl font-semibold text-gray-800">Sign in</h2>
-
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2.5 rounded-md">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Email</label>
             <input
               type="email"
               value={email}
@@ -59,7 +61,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Password</label>
             <input
               type="password"
               value={password}
@@ -74,9 +76,9 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-zinc-500">
             No account?{' '}
-            <Link to="/register" className="text-primary font-medium hover:underline">
+            <Link to="/register" className="text-zinc-900 font-medium hover:underline">
               Register
             </Link>
           </p>

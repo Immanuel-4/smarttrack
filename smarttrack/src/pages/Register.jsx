@@ -1,10 +1,9 @@
-// Register page. Creates a Firebase Auth account and writes the user's profile
-// (name, email, userType, rating, totalTrips) to Firestore, then redirects to their dashboard.
 import { useState } from 'react'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 import { useNavigate, Link } from 'react-router-dom'
+import { User, Car } from 'lucide-react'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', userType: 'Rider' })
@@ -37,52 +36,54 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-4xl font-bold text-primary mb-2">SmartTrack</div>
-          <p className="text-gray-500 text-sm">Create your account</p>
+        <div className="mb-8">
+          <div className="text-2xl font-medium text-zinc-900 mb-1">SmartTrack</div>
+          <p className="text-sm text-zinc-500">Create your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-4">
-          <h2 className="text-xl font-semibold text-gray-800">Register</h2>
-
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2.5 rounded-md">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full name</label>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Full name</label>
             <input type="text" value={form.name} onChange={set('name')} className="input-field" placeholder="Ada Okonkwo" required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Email</label>
             <input type="email" value={form.email} onChange={set('email')} className="input-field" placeholder="ada@example.com" required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Password</label>
             <input type="password" value={form.password} onChange={set('password')} className="input-field" placeholder="Min. 6 characters" required minLength={6} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">I am a…</label>
-            <div className="grid grid-cols-2 gap-3">
-              {['Rider', 'Driver'].map((type) => (
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">I am a…</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { type: 'Rider', Icon: User },
+                { type: 'Driver', Icon: Car },
+              ].map(({ type, Icon }) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, userType: type }))}
-                  className={`py-3 rounded-lg border-2 font-medium text-sm transition-colors ${
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-md border text-sm font-medium transition-colors ${
                     form.userType === type
-                      ? 'border-primary bg-primary-light text-primary'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50'
                   }`}
                 >
-                  {type === 'Rider' ? '🧍 Rider' : '🚗 Driver'}
+                  <Icon size={16} strokeWidth={1.5} />
+                  {type}
                 </button>
               ))}
             </div>
@@ -92,9 +93,9 @@ export default function Register() {
             {loading ? 'Creating account…' : 'Create account'}
           </button>
 
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-zinc-500">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+            <Link to="/login" className="text-zinc-900 font-medium hover:underline">Sign in</Link>
           </p>
         </form>
       </div>

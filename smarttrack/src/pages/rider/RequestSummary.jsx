@@ -1,6 +1,3 @@
-// RequestSummary shows the pickup details and ride type picker before the rider
-// confirms the booking. On confirm it creates the Firestore trip document and
-// navigates to the ActiveTrip screen.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -8,10 +5,11 @@ import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import { ArrowLeft, Car, FileText } from 'lucide-react'
 
 const RIDE_TYPES = [
-  { id: 'Economy', label: 'Economy', desc: 'Affordable everyday rides', icon: '🚗' },
-  { id: 'Comfort', label: 'Comfort', desc: 'Newer cars, more space', icon: '🚙' },
+  { id: 'Economy', label: 'Economy', desc: 'Affordable everyday rides' },
+  { id: 'Comfort', label: 'Comfort', desc: 'Newer cars, more space' },
 ]
 
 export default function RequestSummary() {
@@ -46,62 +44,68 @@ export default function RequestSummary() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-lg mx-auto p-4 pb-24 space-y-5">
+    <div className="h-full overflow-y-auto bg-zinc-50">
+      <div className="max-w-lg mx-auto p-4 pb-24 space-y-4">
         <div className="flex items-center gap-3 pt-2">
-          <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-700">←</button>
-          <h1 className="text-lg font-semibold text-gray-800">Confirm your ride</h1>
+          <button onClick={() => navigate(-1)} className="text-zinc-500 hover:text-zinc-900 transition-colors">
+            <ArrowLeft size={16} strokeWidth={1.5} />
+          </button>
+          <h1 className="text-base font-medium text-zinc-900">Confirm your ride</h1>
         </div>
 
         {/* Pickup summary */}
         <div className="card space-y-3">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Pickup location</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Pickup location</p>
           <PlusCodeChip code={pickupLocation.plus_code} size="lg" />
           {pickupLocation.area_label && (
-            <p className="text-sm text-gray-700 font-medium">{pickupLocation.area_label}</p>
+            <p className="text-sm text-zinc-700">{pickupLocation.area_label}</p>
           )}
           {pickupLocation.user_note && (
-            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-              📝 {pickupLocation.user_note}
-            </p>
+            <div className="border-l-2 border-zinc-300 pl-3">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <FileText size={12} strokeWidth={1.5} className="text-zinc-400" />
+                <span className="text-xs text-zinc-400">Driver note</span>
+              </div>
+              <p className="text-sm text-zinc-600">{pickupLocation.user_note}</p>
+            </div>
           )}
           {pickupLocation.photo_base64 && (
             <img
               src={`data:image/jpeg;base64,${pickupLocation.photo_base64}`}
               alt="Pickup"
-              className="w-full h-36 object-cover rounded-lg"
+              className="w-full h-36 object-cover rounded-md border border-zinc-200"
             />
           )}
         </div>
 
         {/* Ride type */}
         <div className="card space-y-3">
-          <p className="text-sm font-medium text-gray-700">Select ride type</p>
-          <div className="grid grid-cols-2 gap-3">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Ride type</p>
+          <div className="grid grid-cols-2 gap-2">
             {RIDE_TYPES.map((rt) => (
               <button
                 key={rt.id}
                 onClick={() => setRideType(rt.id)}
-                className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                className={`p-3 rounded-md border text-left transition-colors ${
                   rideType === rt.id
-                    ? 'border-primary bg-primary-light'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
                 }`}
               >
-                <div className="text-2xl mb-1">{rt.icon}</div>
-                <div className="font-semibold text-sm text-gray-800">{rt.label}</div>
-                <div className="text-xs text-gray-500">{rt.desc}</div>
+                <Car size={16} strokeWidth={1.5} className={`mb-1.5 ${rideType === rt.id ? 'text-white' : 'text-zinc-400'}`} />
+                <div className={`font-medium text-sm ${rideType === rt.id ? 'text-white' : 'text-zinc-800'}`}>{rt.label}</div>
+                <div className={`text-xs mt-0.5 ${rideType === rt.id ? 'text-zinc-300' : 'text-zinc-500'}`}>{rt.desc}</div>
               </button>
             ))}
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2.5 rounded-md">{error}</div>
         )}
 
         <button onClick={handleRequest} disabled={loading} className="btn-primary">
-          {loading ? 'Finding a driver…' : '🚗 Request ride'}
+          {loading ? 'Finding a driver…' : 'Request ride'}
         </button>
       </div>
     </div>

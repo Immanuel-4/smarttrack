@@ -23,27 +23,27 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white font-semibold py-3 px-6 rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-center;
+    @apply bg-zinc-900 text-white font-medium py-2 px-4 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-center text-sm;
   }
 
   .btn-secondary {
-    @apply border border-primary text-primary font-semibold py-3 px-6 rounded-lg hover:bg-primary-light transition-colors w-full text-center;
+    @apply bg-white border border-zinc-200 text-zinc-700 font-medium py-2 px-4 rounded-md hover:bg-zinc-50 transition-colors w-full text-center text-sm;
   }
 
   .btn-danger {
-    @apply bg-red-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-600 transition-colors w-full text-center;
+    @apply bg-white border border-red-200 text-red-600 font-medium py-2 px-4 rounded-md hover:bg-red-50 transition-colors w-full text-center text-sm;
+  }
+
+  .btn-ghost {
+    @apply text-zinc-500 font-medium py-2 px-4 rounded-md hover:bg-zinc-100 hover:text-zinc-900 transition-colors text-sm;
   }
 
   .card {
-    @apply bg-white border border-gray-200 rounded-lg p-4;
-  }
-
-  .plus-code-chip {
-    @apply inline-flex items-center gap-1 bg-primary text-white text-sm font-mono font-semibold px-3 py-1 rounded-full;
+    @apply bg-white border border-zinc-200 rounded-lg p-4;
   }
 
   .input-field {
-    @apply w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 transition-colors;
   }
 }
 

@@ -1,6 +1,3 @@
-// Navigate shows the driver a live map with a compass and distance to the rider's
-// pickup point. The driver arrow rotates to face the destination using bearingDeg.
-// Pressing "Arrived" sets the trip to IN_PROGRESS; "Complete" sets it to COMPLETED.
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore'
@@ -8,6 +5,7 @@ import L from 'leaflet'
 import { db } from '../../firebase/config'
 import { bearingDeg, haversineKm } from '../../utils/distance'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import { Navigation, Flag, FileText, Check } from 'lucide-react'
 
 export default function Navigate() {
   const location = useLocation()
@@ -70,7 +68,7 @@ export default function Navigate() {
 
     const driverIcon = L.divIcon({
       className: '',
-      html: `<div style="background:#1D9E75;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid white;transform:rotate(${b}deg);box-shadow:0 2px 8px rgba(0,0,0,0.3)">↑</div>`,
+      html: `<div style="background:#18181b;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;transform:rotate(${b}deg)">&#9650;</div>`,
       iconSize: [32, 32], iconAnchor: [16, 16],
     })
 
@@ -106,11 +104,11 @@ export default function Navigate() {
 
   if (!tripId) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-500">
+      <div className="h-full flex items-center justify-center">
         <div className="text-center p-8">
-          <p className="text-5xl mb-3">🧭</p>
-          <p className="font-medium mb-2">No active navigation</p>
-          <button onClick={() => navigate('/driver/requests')} className="text-primary hover:underline text-sm">View requests →</button>
+          <Navigation size={40} strokeWidth={1} className="text-zinc-300 mx-auto mb-4" />
+          <p className="font-medium text-zinc-900 text-sm mb-1">No active navigation</p>
+          <button onClick={() => navigate('/driver/requests')} className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors">View requests</button>
         </div>
       </div>
     )
@@ -120,20 +118,24 @@ export default function Navigate() {
     <div className="h-full flex flex-col">
       <div ref={mapContainer} className="flex-1" />
 
-      <div className="bg-white border-t border-gray-200 p-4 space-y-4">
-        {/* Compass + distance */}
+      <div className="bg-white border-t border-zinc-200 p-4 space-y-3">
+        {/* Distance + Plus Code */}
         <div className="flex items-center gap-4">
           <div
-            className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center shrink-0"
+            className="w-12 h-12 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0"
             style={{ transform: `rotate(${bearing}deg)`, transition: 'transform 0.5s ease' }}
           >
-            <span className="text-2xl">🧭</span>
+            <Navigation size={20} strokeWidth={1.5} className="text-zinc-700" />
           </div>
           <div>
-            <p className="font-semibold text-gray-800">
-              {distKm != null ? `${distKm < 1 ? Math.round(distKm * 1000) + 'm' : distKm.toFixed(1) + 'km'}` : 'Calculating…'}
+            <p className="font-medium text-zinc-900 text-sm">
+              {distKm != null
+                ? distKm < 1
+                  ? `${Math.round(distKm * 1000)}m to pickup`
+                  : `${distKm.toFixed(1)}km to pickup`
+                : 'Calculating…'}
             </p>
-            <p className="text-xs text-gray-500">to pickup</p>
+            <p className="text-xs text-zinc-500">Navigate to rider</p>
           </div>
           <div className="ml-auto">
             <PlusCodeChip code={loc?.plus_code} />
@@ -141,9 +143,12 @@ export default function Navigate() {
         </div>
 
         {loc?.user_note && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-xs text-amber-700 font-medium mb-0.5">Landmark</p>
-            <p className="text-sm text-amber-800">{loc.user_note}</p>
+          <div className="border-l-2 border-zinc-300 pl-3">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <FileText size={12} strokeWidth={1.5} className="text-zinc-400" />
+              <span className="text-xs text-zinc-400">Landmark</span>
+            </div>
+            <p className="text-sm text-zinc-600">{loc.user_note}</p>
           </div>
         )}
 
@@ -151,16 +156,20 @@ export default function Navigate() {
           <img
             src={`data:image/jpeg;base64,${loc.photo_base64}`}
             alt="Pickup area"
-            className="w-full h-32 object-cover rounded-lg"
+            className="w-full h-32 object-cover rounded-md border border-zinc-200"
           />
         )}
 
         {!arrived ? (
-          <button onClick={handleArrived} className="btn-primary">I've arrived at pickup</button>
+          <button onClick={handleArrived} className="btn-primary flex items-center justify-center gap-1.5">
+            <Flag size={14} strokeWidth={1.5} />
+            I've arrived at pickup
+          </button>
         ) : (
           <div className="space-y-3">
-            <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg text-center font-medium">
-              ✅ Waiting for rider… trip in progress
+            <div className="bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm px-3 py-2.5 rounded-md text-center flex items-center justify-center gap-1.5">
+              <Check size={14} strokeWidth={1.5} className="text-green-600" />
+              Waiting for rider — trip in progress
             </div>
             <button onClick={handleComplete} className="btn-primary">Mark trip as completed</button>
           </div>
