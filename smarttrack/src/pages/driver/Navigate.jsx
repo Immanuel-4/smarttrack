@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
 import { bearingDeg, haversineKm } from '../../utils/distance'
+import { cacheTrip, clearTripCache, loadCachedTrip } from '../../utils/tripCache'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Navigation, Flag, FileText, Check } from 'lucide-react'
+import { Navigation, Flag, FileText, Check, Wifi, WifiOff } from 'lucide-react'
 
 export default function Navigate() {
   const location = useLocation()
   const navigate = useNavigate()
   const tripId = location.state?.tripId
   const [trip, setTrip] = useState(null)
+  const [dataSource, setDataSource] = useState(null) // 'firestore' | 'cache'
   const [myPos, setMyPos] = useState(null)
   const [bearing, setBearing] = useState(0)
   const [distKm, setDistKm] = useState(null)
@@ -23,9 +25,26 @@ export default function Navigate() {
 
   useEffect(() => {
     if (!tripId) return
-    return onSnapshot(doc(db, 'trips', tripId), snap => {
-      if (snap.exists()) setTrip({ id: snap.id, ...snap.data() })
-    })
+    const loadTripData = async () => {
+      try {
+        const tripDoc = await getDoc(doc(db, 'trips', tripId))
+        if (tripDoc.exists()) {
+          const tripData = { id: tripDoc.id, ...tripDoc.data() }
+          cacheTrip(tripData)
+          setTrip(tripData)
+          setDataSource('firestore')
+          return
+        }
+      } catch (err) {
+        console.warn('Firestore unavailable, loading from cache:', err)
+      }
+      const cached = loadCachedTrip()
+      if (cached) {
+        setTrip(cached)
+        setDataSource('cache')
+      }
+    }
+    loadTripData()
   }, [tripId])
 
   useEffect(() => {
@@ -97,6 +116,7 @@ export default function Navigate() {
       status: 'COMPLETED',
       updatedAt: serverTimestamp(),
     })
+    clearTripCache()
     navigate('/driver')
   }
 
@@ -137,8 +157,20 @@ export default function Navigate() {
             </p>
             <p className="text-xs text-zinc-500">Navigate to rider</p>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex flex-col items-end gap-1">
             <PlusCodeChip code={loc?.plus_code} />
+            {dataSource === 'firestore' && (
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
+                <Wifi size={12} strokeWidth={1.5} />
+                Live data
+              </span>
+            )}
+            {dataSource === 'cache' && (
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
+                <WifiOff size={12} strokeWidth={1.5} />
+                Cached data · loaded offline
+              </span>
+            )}
           </div>
         </div>
 

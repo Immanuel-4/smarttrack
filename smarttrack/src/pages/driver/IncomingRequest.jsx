@@ -5,6 +5,7 @@ import { useAuth } from '../../context/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PlusCodeChip from '../../components/PlusCodeChip'
 import { Check, X, Radio, FileText } from 'lucide-react'
+import { cacheTrip } from '../../utils/tripCache'
 
 export default function IncomingRequest() {
   const { user } = useAuth()
@@ -38,6 +39,7 @@ export default function IncomingRequest() {
         driverId: user.uid,
         updatedAt: serverTimestamp(),
       })
+      cacheTrip(trip)
       navigate('/driver/navigate', { state: { tripId: trip.id } })
     } finally {
       setAccepting(false)
@@ -64,7 +66,7 @@ export default function IncomingRequest() {
 
   return (
     <div className="h-full overflow-y-auto bg-zinc-50">
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+      <div className="max-w-lg mx-auto p-4 pb-20 md:pb-4 space-y-4">
         <div className="flex items-center justify-between pt-2">
           <h1 className="text-base font-medium text-zinc-900">New request</h1>
           <span className="text-xs text-zinc-400">{current + 1} / {requests.length}</span>

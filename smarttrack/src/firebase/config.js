@@ -1,7 +1,7 @@
 // Initialises Firebase and exports the Auth and Firestore instances used throughout the app.
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: "AIzaSyAIfR2NLvpULLNVOmMaSDGihw9-eIFAOAo",
@@ -16,4 +16,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
+
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence failed: multiple tabs open')
+  } else if (err.code === 'unimplemented') {
+    console.warn('Offline persistence not supported in this browser')
+  }
+})
+
 export default app

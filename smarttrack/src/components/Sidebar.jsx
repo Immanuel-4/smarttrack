@@ -2,12 +2,12 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
 import { useAuth } from '../context/useAuth'
-import { Home, Car, LayoutDashboard, Clock, Navigation, User } from 'lucide-react'
+import { Home, LayoutDashboard, Clock, Navigation, User } from 'lucide-react'
 
 const riderLinks = [
   { to: '/rider', label: 'Home', Icon: Home },
   { to: '/rider/active', label: 'Active Trip', Icon: Navigation },
-  { to: '/rider/history', label: 'Trip History', Icon: Clock },
+  { to: '/rider/trips', label: 'Trip History', Icon: Clock },
   { to: '/rider/account', label: 'Account', Icon: User },
 ]
 
@@ -15,6 +15,8 @@ const driverLinks = [
   { to: '/driver', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/driver/requests', label: 'Requests', Icon: Clock },
   { to: '/driver/navigate', label: 'Navigate', Icon: Navigation },
+  { to: '/driver/trips', label: 'Trip History', Icon: Clock },
+  { to: '/driver/account', label: 'Account', Icon: User },
 ]
 
 export default function Sidebar({ userType }) {

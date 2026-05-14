@@ -1,15 +1,19 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Car, LayoutDashboard, Clock, Navigation } from 'lucide-react'
+import { Home, Car, LayoutDashboard, Clock, Navigation, User } from 'lucide-react'
 
 const riderLinks = [
   { to: '/rider', label: 'Home', Icon: Home },
   { to: '/rider/active', label: 'Trip', Icon: Car },
+  { to: '/rider/trips', label: 'History', Icon: Clock },
+  { to: '/rider/account', label: 'Account', Icon: User },
 ]
 
 const driverLinks = [
   { to: '/driver', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/driver/requests', label: 'Requests', Icon: Clock },
   { to: '/driver/navigate', label: 'Navigate', Icon: Navigation },
+  { to: '/driver/trips', label: 'History', Icon: Clock },
+  { to: '/driver/account', label: 'Account', Icon: User },
 ]
 
 export default function BottomNav({ userType }) {

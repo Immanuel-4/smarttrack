@@ -109,7 +109,7 @@ export default function DriverHome() {
       </div>
 
       {/* Stats panel */}
-      <div className="md:w-80 bg-white border-t md:border-t-0 md:border-l border-zinc-200 overflow-y-auto p-4 space-y-4">
+      <div className="md:w-80 bg-white border-t md:border-t-0 md:border-l border-zinc-200 overflow-y-auto p-4 pb-20 md:pb-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">

@@ -277,12 +277,12 @@ export default function RiderHome() {
         stays visible above the sheet. translate-y-full slides it off-screen downward.
       */}
       <div
-        className={`md:hidden fixed inset-x-0 rounded-t-2xl bg-white border-t border-zinc-200 z-[2000] transition-transform duration-300 ease-out ${
+        className={`md:hidden fixed inset-x-0 rounded-t-2xl bg-white border-t border-zinc-200 z-[2000] transition-transform duration-300 ease-out overflow-y-auto ${
           sheetOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ bottom: '64px', maxHeight: '65vh' }}
       >
-        <div className="overflow-y-auto h-full">
+        <div>
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 bg-zinc-200 rounded-full" />
@@ -304,7 +304,7 @@ export default function RiderHome() {
           </div>
 
           {/* Sheet form */}
-          <div className="p-4 space-y-4">
+          <div className="p-4 pb-8 space-y-4">
             <div>
               <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
                 Landmark note for driver

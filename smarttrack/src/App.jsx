@@ -20,6 +20,9 @@ import DriverHome from './pages/driver/DriverHome'
 import IncomingRequest from './pages/driver/IncomingRequest'
 import Navigate_ from './pages/driver/Navigate'
 
+import TripHistory from './pages/shared/TripHistory'
+import Account from './pages/shared/Account'
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -36,12 +39,16 @@ export default function App() {
                 <Route path="annotate" element={<Annotate />} />
                 <Route path="summary" element={<RequestSummary />} />
                 <Route path="active" element={<ActiveTrip />} />
+                <Route path="trips" element={<TripHistory />} />
+                <Route path="account" element={<Account />} />
               </Route>
 
               <Route path="/driver" element={<DriverLayout />}>
                 <Route index element={<DriverHome />} />
                 <Route path="requests" element={<IncomingRequest />} />
                 <Route path="navigate" element={<Navigate_ />} />
+                <Route path="trips" element={<TripHistory />} />
+                <Route path="account" element={<Account />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/login" replace />} />
