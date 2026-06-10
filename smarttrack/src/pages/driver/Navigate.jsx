@@ -1,62 +1,125 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  doc,
+  onSnapshot,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
+import { useAuth } from '../../context/useAuth'
 import { bearingDeg, haversineKm } from '../../utils/distance'
 import { cacheTrip, clearTripCache, loadCachedTrip } from '../../utils/tripCache'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Navigation, Flag, FileText, Check, Wifi, WifiOff } from 'lucide-react'
+import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X } from 'lucide-react'
 
 export default function Navigate() {
   const location = useLocation()
   const navigate = useNavigate()
-  const tripId = location.state?.tripId
+  const { user } = useAuth()
+
+  // tripId may arrive via route state (fast path from Accept). If not, we resolve it.
+  const [tripId, setTripId] = useState(location.state?.tripId ?? null)
+  const [resolving, setResolving] = useState(!location.state?.tripId)
   const [trip, setTrip] = useState(null)
   const [dataSource, setDataSource] = useState(null) // 'firestore' | 'cache'
   const [myPos, setMyPos] = useState(null)
   const [bearing, setBearing] = useState(0)
   const [distKm, setDistKm] = useState(null)
-  const [arrived, setArrived] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const myMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
 
+  // --- 1. Resolve the active trip when we didn't arrive here from Accept ---
+  // Source of truth: this driver's ACCEPTED / IN_PROGRESS trip in Firestore.
+  // Offline fallback: the cached active trip id.
   useEffect(() => {
-    if (!tripId) return
-    const loadTripData = async () => {
+    if (tripId || !user) return
+    let cancelled = false
+
+    const resolveActiveTrip = async () => {
       try {
-        const tripDoc = await getDoc(doc(db, 'trips', tripId))
-        if (tripDoc.exists()) {
-          const tripData = { id: tripDoc.id, ...tripDoc.data() }
-          cacheTrip(tripData)
-          setTrip(tripData)
-          setDataSource('firestore')
+        const q = query(
+          collection(db, 'trips'),
+          where('driverId', '==', user.uid),
+          where('status', 'in', ['ACCEPTED', 'IN_PROGRESS']),
+          limit(1),
+        )
+        const snap = await getDocs(q)
+        if (cancelled) return
+        if (!snap.empty) {
+          setTripId(snap.docs[0].id)
+          setResolving(false)
           return
         }
       } catch (err) {
-        console.warn('Firestore unavailable, loading from cache:', err)
+        console.warn('Active-trip lookup failed, falling back to cache:', err)
       }
+
+      // Offline / query failed — recover the id from the cache.
       const cached = loadCachedTrip()
-      if (cached) {
-        setTrip(cached)
-        setDataSource('cache')
-      }
+      if (cancelled) return
+      if (cached?.id) setTripId(cached.id)
+      setResolving(false)
     }
-    loadTripData()
+
+    resolveActiveTrip()
+    return () => {
+      cancelled = true
+    }
+  }, [user, tripId])
+
+  // --- 2. Live subscription to the trip document ---
+  // Keeps status (arrived / cancelled / completed) always in sync and re-caches.
+  useEffect(() => {
+    if (!tripId) return
+    const ref = doc(db, 'trips', tripId)
+    const unsub = onSnapshot(
+      ref,
+      snap => {
+        if (snap.exists()) {
+          const data = { id: snap.id, ...snap.data() }
+          setTrip(data)
+          setDataSource('firestore')
+          cacheTrip(data)
+        }
+      },
+      err => {
+        console.warn('Trip listener unavailable, loading from cache:', err)
+        const cached = loadCachedTrip()
+        if (cached) {
+          setTrip(cached)
+          setDataSource('cache')
+        }
+      },
+    )
+    return unsub
   }, [tripId])
 
+  // --- Map setup ---
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
     const center = trip?.pickup_location?.coordinates || { lat: 6.5244, lng: 3.3792 }
     const map = L.map(mapContainer.current, { zoomControl: false }).setView([center.lat, center.lng], 15)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors', maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
   }, [!!trip])
 
   useEffect(() => {
@@ -88,7 +151,8 @@ export default function Navigate() {
     const driverIcon = L.divIcon({
       className: '',
       html: `<div style="background:#18181b;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;transform:rotate(${b}deg)">&#9650;</div>`,
-      iconSize: [32, 32], iconAnchor: [16, 16],
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
     })
 
     if (!myMarkerRef.current) {
@@ -101,13 +165,13 @@ export default function Navigate() {
     mapRef.current.setView([myPos.lat, myPos.lng])
   }, [myPos])
 
+  // --- Status transitions (driven by Firestore, reflected live via the listener) ---
   const handleArrived = async () => {
     if (!tripId) return
     await updateDoc(doc(db, 'trips', tripId), {
       status: 'IN_PROGRESS',
       updatedAt: serverTimestamp(),
     })
-    setArrived(true)
   }
 
   const handleComplete = async () => {
@@ -120,25 +184,87 @@ export default function Navigate() {
     navigate('/driver')
   }
 
-  const loc = trip?.pickup_location
+  const handleCancel = async () => {
+    if (!tripId) return
+    setCancelling(true)
+    try {
+      await updateDoc(doc(db, 'trips', tripId), {
+        status: 'CANCELLED',
+        cancelledBy: 'DRIVER',
+        updatedAt: serverTimestamp(),
+      })
+      clearTripCache()
+      navigate('/driver/requests')
+    } finally {
+      setCancelling(false)
+    }
+  }
 
+  // Derive UI state from the trip — never from ephemeral local flags.
+  const loc = trip?.pickup_location
+  const status = trip?.status
+  const arrived = status === 'IN_PROGRESS'
+  const cancelled = status === 'CANCELLED'
+
+  // Still resolving which trip is active
+  if (resolving && !tripId) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center p-8">
+          <Navigation size={40} strokeWidth={1} className="text-zinc-300 mx-auto mb-4 animate-pulse" />
+          <p className="font-medium text-zinc-900 text-sm">Loading your active trip…</p>
+        </div>
+      </div>
+    )
+  }
+
+  // No active trip exists for this driver
   if (!tripId) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center p-8">
           <Navigation size={40} strokeWidth={1} className="text-zinc-300 mx-auto mb-4" />
           <p className="font-medium text-zinc-900 text-sm mb-1">No active navigation</p>
-          <button onClick={() => navigate('/driver/requests')} className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors">View requests</button>
+          <button
+            onClick={() => navigate('/driver/requests')}
+            className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+          >
+            View requests
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // The ride was cancelled (by the rider or the driver) — react live
+  if (cancelled) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center p-8 max-w-sm">
+          <XCircle size={40} strokeWidth={1} className="text-zinc-300 mx-auto mb-4" />
+          <p className="font-medium text-zinc-900 text-sm mb-1">This ride was cancelled</p>
+          <p className="text-xs text-zinc-500 mb-4">
+            {trip?.cancelledBy === 'RIDER' ? 'The rider cancelled this trip.' : 'This trip was cancelled.'}
+          </p>
+          <button
+            onClick={() => {
+              clearTripCache()
+              navigate('/driver/requests')
+            }}
+            className="btn-secondary text-xs"
+          >
+            Back to requests
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col md:flex-row">
       <div ref={mapContainer} className="flex-1" />
 
-      <div className="bg-white border-t border-zinc-200 p-4 space-y-3">
+      <div className="bg-white border-t border-zinc-200 md:border-t-0 md:border-l p-4 space-y-3 overflow-y-auto pb-20 md:w-80 md:pb-6">
         {/* Distance + Plus Code */}
         <div className="flex items-center gap-4">
           <div
@@ -193,10 +319,20 @@ export default function Navigate() {
         )}
 
         {!arrived ? (
-          <button onClick={handleArrived} className="btn-primary flex items-center justify-center gap-1.5">
-            <Flag size={14} strokeWidth={1.5} />
-            I've arrived at pickup
-          </button>
+          <div className="space-y-2">
+            <button onClick={handleArrived} className="btn-primary flex items-center justify-center gap-1.5">
+              <Flag size={14} strokeWidth={1.5} />
+              I've arrived at pickup
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="btn-secondary w-full flex items-center justify-center gap-1.5 text-zinc-500"
+            >
+              <X size={14} strokeWidth={1.5} />
+              {cancelling ? 'Cancelling…' : 'Cancel trip'}
+            </button>
+          </div>
         ) : (
           <div className="space-y-3">
             <div className="bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm px-3 py-2.5 rounded-md text-center flex items-center justify-center gap-1.5">
