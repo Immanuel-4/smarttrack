@@ -38,6 +38,9 @@ export default function Navigate() {
   const mapRef = useRef(null)
   const myMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
+  const routeLayerRef = useRef(null)
+  const lastRouteFetchRef = useRef(0)
+  const pickupCenteredRef = useRef(false)
 
   // --- 1. Resolve the active trip when we didn't arrive here from Accept ---
   // Source of truth: this driver's ACCEPTED / IN_PROGRESS trip in Firestore.
@@ -108,10 +111,9 @@ export default function Navigate() {
   // --- Map setup ---
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
-    const center = trip?.pickup_location?.coordinates || { lat: 6.5244, lng: 3.3792 }
-    const map = L.map(mapContainer.current, { zoomControl: false }).setView([center.lat, center.lng], 15)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    const map = L.map(mapContainer.current, { zoomControl: false }).setView([6.5244, 3.3792], 15)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
       maxZoom: 19,
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -119,8 +121,18 @@ export default function Navigate() {
     return () => {
       map.remove()
       mapRef.current = null
+      routeLayerRef.current = null
+      lastRouteFetchRef.current = 0
     }
-  }, [!!trip])
+  }, [tripId])
+
+  // Centre on pickup once trip data arrives, but only before GPS has fired.
+  useEffect(() => {
+    const coords = trip?.pickup_location?.coordinates
+    if (!mapRef.current || !coords || pickupCenteredRef.current) return
+    mapRef.current.setView([coords.lat, coords.lng], 15)
+    pickupCenteredRef.current = true
+  }, [trip?.pickup_location?.coordinates])
 
   useEffect(() => {
     if (!mapRef.current || !trip?.pickup_location?.coordinates) return
@@ -130,12 +142,14 @@ export default function Navigate() {
       pin.bindPopup('Pickup point').openPopup()
       destMarkerRef.current = pin
     }
-  }, [trip?.pickup_location])
+  }, [trip?.pickup_location?.coordinates])
 
   useEffect(() => {
-    const watchId = navigator.geolocation?.watchPosition(({ coords }) => {
-      setMyPos({ lat: coords.latitude, lng: coords.longitude })
-    })
+    const watchId = navigator.geolocation?.watchPosition(
+      ({ coords }) => setMyPos({ lat: coords.latitude, lng: coords.longitude }),
+      err => console.warn('Geolocation error:', err),
+      { enableHighAccuracy: true },
+    )
     return () => navigator.geolocation?.clearWatch(watchId)
   }, [])
 
@@ -150,9 +164,14 @@ export default function Navigate() {
 
     const driverIcon = L.divIcon({
       className: '',
-      html: `<div style="background:#18181b;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;transform:rotate(${b}deg)">&#9650;</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      html: `<div style="width:44px;height:44px;transform:rotate(${b}deg);transform-origin:center center">
+        <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="22" cy="22" r="20" fill="#1a73e8" stroke="white" stroke-width="2.5"/>
+          <path d="M22 7 L30 34 L22 29 L14 34 Z" fill="white"/>
+        </svg>
+      </div>`,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     })
 
     if (!myMarkerRef.current) {
@@ -163,6 +182,29 @@ export default function Navigate() {
     }
 
     mapRef.current.setView([myPos.lat, myPos.lng])
+
+    // Fetch road-following route from OSRM (throttled to once every 30 s)
+    const now = Date.now()
+    if (now - lastRouteFetchRef.current > 30_000) {
+      lastRouteFetchRef.current = now
+      const url = `https://router.project-osrm.org/route/v1/driving/${myPos.lng},${myPos.lat};${pickup.lng},${pickup.lat}?overview=full&geometries=geojson`
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          if (!mapRef.current || !data.routes?.[0]) return
+          const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+          if (routeLayerRef.current) routeLayerRef.current.remove()
+          routeLayerRef.current = L.polyline(coords, {
+            color: '#1a73e8',
+            weight: 5,
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round',
+          }).addTo(mapRef.current)
+          myMarkerRef.current?.bringToFront()
+        })
+        .catch(err => console.warn('Route fetch failed:', err))
+    }
   }, [myPos])
 
   // --- Status transitions (driven by Firestore, reflected live via the listener) ---
