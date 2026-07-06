@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
     totalTrips: 0,
     userType: 'Rider',
     createdAt: new Date(),
+    phone: '+2348000000000',
   } : null)
   const [loading, setLoading] = useState(DEV_BYPASS ? false : true)
 

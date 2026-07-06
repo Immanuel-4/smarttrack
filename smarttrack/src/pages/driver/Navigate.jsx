@@ -10,6 +10,7 @@ import {
   onSnapshot,
   updateDoc,
   serverTimestamp,
+  getDoc,
 } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
@@ -17,7 +18,7 @@ import { useAuth } from '../../context/useAuth'
 import { bearingDeg, haversineKm } from '../../utils/distance'
 import { cacheTrip, clearTripCache, loadCachedTrip } from '../../utils/tripCache'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X } from 'lucide-react'
+import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X, Phone, Map } from 'lucide-react'
 
 export default function Navigate() {
   const location = useLocation()
@@ -33,12 +34,16 @@ export default function Navigate() {
   const [bearing, setBearing] = useState(0)
   const [distKm, setDistKm] = useState(null)
   const [cancelling, setCancelling] = useState(false)
+  const [riderPhone, setRiderPhone] = useState(null)
+  const [showCallPopup, setShowCallPopup] = useState(false)
+  const [mapType, setMapType] = useState('satellite')
 
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const myMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
   const routeLayerRef = useRef(null)
+  const tileLayerRef = useRef(null)
   const lastRouteFetchRef = useRef(0)
   const pickupCenteredRef = useRef(false)
 
@@ -88,12 +93,20 @@ export default function Navigate() {
     const ref = doc(db, 'trips', tripId)
     const unsub = onSnapshot(
       ref,
-      snap => {
+      async snap => {
         if (snap.exists()) {
           const data = { id: snap.id, ...snap.data() }
           setTrip(data)
           setDataSource('firestore')
           cacheTrip(data)
+          
+          // Fetch rider phone number
+          if (data.riderId) {
+            const riderDoc = await getDoc(doc(db, 'users', data.riderId))
+            if (riderDoc.exists()) {
+              setRiderPhone(riderDoc.data().phone)
+            }
+          }
         }
       },
       err => {
@@ -112,19 +125,41 @@ export default function Navigate() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
     const map = L.map(mapContainer.current, { zoomControl: false }).setView([6.5244, 3.3792], 15)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-      maxZoom: 19,
-    }).addTo(map)
+    
+    const tileLayer = L.tileLayer(
+      mapType === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        attribution: mapType === 'satellite'
+          ? 'Tiles © Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+          : '© OpenStreetMap contributors',
+        maxZoom: 19,
+      }
+    ).addTo(map)
+    tileLayerRef.current = tileLayer
+    
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
     return () => {
       map.remove()
       mapRef.current = null
       routeLayerRef.current = null
+      tileLayerRef.current = null
       lastRouteFetchRef.current = 0
     }
   }, [tripId])
+
+  // Update tile layer when map type changes
+  useEffect(() => {
+    if (!mapRef.current || !tileLayerRef.current) return
+    
+    const newUrl = mapType === 'satellite'
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    
+    tileLayerRef.current.setUrl(newUrl)
+  }, [mapType])
 
   // Centre on pickup once trip data arrives, but only before GPS has fired.
   useEffect(() => {
@@ -214,6 +249,7 @@ export default function Navigate() {
       status: 'IN_PROGRESS',
       updatedAt: serverTimestamp(),
     })
+    setShowCallPopup(true)
   }
 
   const handleComplete = async () => {
@@ -304,7 +340,16 @@ export default function Navigate() {
 
   return (
     <div className="h-full flex flex-col md:flex-row">
-      <div ref={mapContainer} className="flex-1" />
+      <div ref={mapContainer} className="flex-1 relative">
+        {/* Map type toggle button */}
+        <button
+          onClick={() => setMapType(mapType === 'satellite' ? 'street' : 'satellite')}
+          className="absolute top-4 left-4 z-[1000] bg-white border border-zinc-200 text-zinc-700 rounded-md p-2 hover:bg-zinc-50 transition-colors shadow-sm"
+          title={mapType === 'satellite' ? 'Switch to street map' : 'Switch to satellite'}
+        >
+          <Map size={18} strokeWidth={1.5} />
+        </button>
+      </div>
 
       <div className="bg-white border-t border-zinc-200 md:border-t-0 md:border-l p-4 space-y-3 overflow-y-auto pb-20 md:w-80 md:pb-6">
         {/* Distance + Plus Code */}
@@ -341,6 +386,13 @@ export default function Navigate() {
             )}
           </div>
         </div>
+
+        {riderPhone && (
+          <div className="flex items-center gap-2 text-sm text-zinc-700">
+            <Phone size={14} strokeWidth={1.5} className="text-zinc-500" />
+            <span>{riderPhone}</span>
+          </div>
+        )}
 
         {loc?.user_note && (
           <div className="border-l-2 border-zinc-300 pl-3">
@@ -385,6 +437,35 @@ export default function Navigate() {
           </div>
         )}
       </div>
+
+      {/* Call rider popup */}
+      {showCallPopup && riderPhone && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[3000] p-4" onClick={() => setShowCallPopup(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
+                <Phone size={32} strokeWidth={1.5} className="text-zinc-700" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-zinc-900">Call Rider</h3>
+                <p className="text-sm text-zinc-500 mt-1">{riderPhone}</p>
+              </div>
+              <a
+                href={`tel:${riderPhone}`}
+                className="block w-full bg-zinc-900 text-white rounded-md py-3 text-sm font-medium hover:bg-zinc-700 transition-colors text-center"
+              >
+                Call Now
+              </a>
+              <button
+                onClick={() => setShowCallPopup(false)}
+                className="w-full text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

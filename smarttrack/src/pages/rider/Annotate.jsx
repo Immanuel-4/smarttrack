@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTrip } from '../../context/useTrip'
 import { compressPhoto } from '../../utils/photoCompress'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Camera, X, ArrowLeft } from 'lucide-react'
+import { Camera, X, ArrowLeft, Image as ImageIcon } from 'lucide-react'
 
 export default function Annotate() {
   const navigate = useNavigate()
@@ -12,18 +12,29 @@ export default function Annotate() {
   const [photo, setPhoto] = useState(pickupLocation?.photo_base64 ? `data:image/jpeg;base64,${pickupLocation.photo_base64}` : null)
   const [photoInfo, setPhotoInfo] = useState(null)
   const [compressing, setCompressing] = useState(false)
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false)
   const fileRef = useRef(null)
+  const galleryFileRef = useRef(null)
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     setCompressing(true)
+    setShowPhotoDialog(false)
     try {
       const { dataUrl, base64, sizeKB } = await compressPhoto(file)
       setPhoto(dataUrl)
       setPhotoInfo({ sizeKB, base64 })
     } finally {
       setCompressing(false)
+    }
+  }
+
+  const handlePhotoOptionClick = (option) => {
+    if (option === 'camera') {
+      fileRef.current?.click()
+    } else {
+      galleryFileRef.current?.click()
     }
   }
 
@@ -86,7 +97,7 @@ export default function Annotate() {
               <p className="text-xs text-zinc-400 mt-1">Face outward toward the street so the driver can spot you</p>
             </div>
             <button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => setShowPhotoDialog(true)}
               disabled={compressing}
               className="text-xs font-medium text-zinc-700 hover:text-zinc-900 transition-colors shrink-0"
             >
@@ -94,10 +105,11 @@ export default function Annotate() {
             </button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+          <input ref={galleryFileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
 
           {!photo && (
             <button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => setShowPhotoDialog(true)}
               disabled={compressing}
               className="w-full border border-dashed border-zinc-300 rounded-lg bg-zinc-50 py-8 flex flex-col items-center gap-2 hover:bg-zinc-100 transition-colors"
             >
@@ -128,6 +140,37 @@ export default function Annotate() {
           Continue to summary
         </button>
       </div>
+
+      {/* Photo source dialog */}
+      {showPhotoDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[3000] p-4" onClick={() => setShowPhotoDialog(false)}>
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-medium text-zinc-900 mb-3">Add photo</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handlePhotoOptionClick('camera')}
+                className="w-full flex items-center gap-3 p-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors text-left"
+              >
+                <Camera size={18} strokeWidth={1.5} className="text-zinc-600" />
+                <span className="text-sm text-zinc-700">Take photo</span>
+              </button>
+              <button
+                onClick={() => handlePhotoOptionClick('gallery')}
+                className="w-full flex items-center gap-3 p-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors text-left"
+              >
+                <ImageIcon size={18} strokeWidth={1.5} className="text-zinc-600" />
+                <span className="text-sm text-zinc-700">Choose from gallery</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowPhotoDialog(false)}
+              className="w-full mt-3 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

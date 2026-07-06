@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { signOut } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
-import { auth } from '../../firebase/config'
+import { auth, db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
-import { LogOut } from 'lucide-react'
+import { updateDoc, doc } from 'firebase/firestore'
+import { LogOut, Phone } from 'lucide-react'
 
 function getInitials(name) {
   if (!name) return '?'
@@ -42,8 +44,41 @@ function SkeletonStats() {
 }
 
 export default function Account() {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, setProfile } = useAuth()
   const navigate = useNavigate()
+  const [editingPhone, setEditingPhone] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+
+  useEffect(() => {
+    if (profile?.phone) {
+      setPhone(profile.phone)
+    }
+  }, [profile])
+
+  const validatePhone = (phoneNum) => {
+    const cleaned = phoneNum.replace(/\D/g, '')
+    return cleaned.length >= 10 && cleaned.length <= 15
+  }
+
+  const handleSavePhone = async () => {
+    if (!validatePhone(phone)) {
+      setPhoneError('Please enter a valid phone number (10-15 digits)')
+      return
+    }
+    setPhoneError('')
+    setSavingPhone(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { phone })
+      setProfile(prev => ({ ...prev, phone }))
+      setEditingPhone(false)
+    } catch (err) {
+      setPhoneError('Failed to update phone number')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
 
   const handleSignOut = async () => {
     await signOut(auth)
@@ -112,6 +147,57 @@ export default function Account() {
             <div className="flex items-center justify-between p-4">
               <span className="text-sm text-zinc-500">Email</span>
               <span className="text-sm text-zinc-900 truncate max-w-[200px]">{profile.email}</span>
+            </div>
+            <div className="p-4">
+              {!editingPhone ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} strokeWidth={1.5} className="text-zinc-400" />
+                    <span className="text-sm text-zinc-500">Phone</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-900">{profile.phone || 'Not added'}</span>
+                    <button
+                      onClick={() => { setEditingPhone(true); setPhone(profile.phone || '') }}
+                      className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                      {profile.phone ? 'Edit' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} strokeWidth={1.5} className="text-zinc-400" />
+                    <span className="text-sm text-zinc-500">Phone</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="input-field text-sm"
+                    placeholder="+234 800 000 0000"
+                  />
+                  {phoneError && (
+                    <p className="text-xs text-red-600">{phoneError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSavePhone}
+                      disabled={savingPhone}
+                      className="text-xs bg-zinc-900 text-white px-3 py-1.5 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                    >
+                      {savingPhone ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingPhone(false); setPhone(profile.phone || ''); setPhoneError('') }}
+                      className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

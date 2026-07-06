@@ -5,16 +5,53 @@ import { useAuth } from '../context/useAuth'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import DemoBar from './DemoBar'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Phone, X } from 'lucide-react'
+
+function PhoneMissingPrompt({ onDismiss }) {
+  return (
+    <div className="fixed top-16 left-0 right-0 md:left-64 md:right-0 z-[2500] bg-amber-50 border-b border-amber-200 p-3">
+      <div className="max-w-7xl mx-auto flex items-start gap-3">
+        <Phone size={16} strokeWidth={1.5} className="text-amber-700 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-amber-900 font-medium">Add your phone number</p>
+          <p className="text-xs text-amber-700 mt-0.5">Please add your phone number in your profile for better service.</p>
+        </div>
+        <button
+          onClick={onDismiss}
+          className="text-amber-500 hover:text-amber-900 transition-colors shrink-0"
+        >
+          <X size={14} strokeWidth={1.5} />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function RiderLayout() {
-  const { user, loading } = useAuth()
+  const { user, loading, profile } = useAuth()
   const navigate = useNavigate()
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false)
 
   // Redirect to login as soon as auth resolves and there is no signed-in user
   useEffect(() => {
     if (!loading && !user) navigate('/login')
   }, [user, loading, navigate])
+
+  // Check for missing phone number
+  useEffect(() => {
+    if (profile && !profile.phone) {
+      const dismissed = sessionStorage.getItem('phonePromptDismissed')
+      if (!dismissed) {
+        setShowPhonePrompt(true)
+      }
+    }
+  }, [profile])
+
+  const handleDismissPhonePrompt = () => {
+    setShowPhonePrompt(false)
+    sessionStorage.setItem('phonePromptDismissed', 'true')
+  }
 
   // Render nothing while Firebase auth state is still being determined
   if (loading || !user) return null
@@ -22,6 +59,7 @@ export default function RiderLayout() {
   return (
     <div className="flex flex-col h-screen">
       <DemoBar />
+      {showPhonePrompt && <PhoneMissingPrompt onDismiss={handleDismissPhonePrompt} />}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar — hidden on mobile */}
         <div className="hidden md:flex">

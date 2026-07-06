@@ -5,8 +5,13 @@ import { auth, db } from '../firebase/config'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Car } from 'lucide-react'
 
+const validatePhone = (phone) => {
+  const cleaned = phone.replace(/\D/g, '')
+  return cleaned.length >= 10 && cleaned.length <= 15
+}
+
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', userType: 'Rider' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', userType: 'Rider' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -16,12 +21,19 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    
+    if (!validatePhone(form.phone)) {
+      setError('Please enter a valid phone number (10-15 digits)')
+      return
+    }
+    
     setLoading(true)
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password)
       await setDoc(doc(db, 'users', cred.user.uid), {
         name: form.name,
         email: form.email,
+        phone: form.phone,
         userType: form.userType,
         rating: 5.0,
         totalTrips: 0,
@@ -63,6 +75,11 @@ export default function Register() {
           <div>
             <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Password</label>
             <input type="password" value={form.password} onChange={set('password')} className="input-field" placeholder="Min. 6 characters" required minLength={6} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1.5">Phone number</label>
+            <input type="tel" value={form.phone} onChange={set('phone')} className="input-field" placeholder="+234 800 000 0000" required />
           </div>
 
           <div>

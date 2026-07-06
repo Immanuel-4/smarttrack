@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Check, X, Radio, FileText } from 'lucide-react'
+import { Check, X, Radio, FileText, Phone } from 'lucide-react'
 import { cacheTrip } from '../../utils/tripCache'
 
 export default function IncomingRequest() {
@@ -13,6 +13,7 @@ export default function IncomingRequest() {
   const [requests, setRequests] = useState([])
   const [current, setCurrent] = useState(0)
   const [accepting, setAccepting] = useState(false)
+  const [riderPhones, setRiderPhones] = useState({})
 
   useEffect(() => {
     const q = query(
@@ -20,15 +21,34 @@ export default function IncomingRequest() {
       where('status', '==', 'PENDING'),
       limit(10)
     )
-    const unsub = onSnapshot(q, snap => {
+    const unsub = onSnapshot(q, async snap => {
       const trips = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       setRequests(trips)
       setCurrent(0)
+      
+      // Fetch rider phone numbers
+      const phonePromises = trips.map(async (trip) => {
+        if (trip.riderId) {
+          const riderDoc = await getDoc(doc(db, 'users', trip.riderId))
+          if (riderDoc.exists()) {
+            return { tripId: trip.id, phone: riderDoc.data().phone }
+          }
+        }
+        return { tripId: trip.id, phone: null }
+      })
+      
+      const phoneResults = await Promise.all(phonePromises)
+      const phoneMap = {}
+      phoneResults.forEach(({ tripId, phone }) => {
+        phoneMap[tripId] = phone
+      })
+      setRiderPhones(phoneMap)
     })
     return unsub
   }, [])
 
   const trip = requests[current]
+  const riderPhone = riderPhones[trip?.id]
 
   const handleAccept = async () => {
     if (!trip || !user) return
@@ -84,6 +104,12 @@ export default function IncomingRequest() {
           <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Pickup</p>
           <PlusCodeChip code={loc?.plus_code} size="lg" />
           {loc?.area_label && <p className="text-sm text-zinc-700">{loc.area_label}</p>}
+          {riderPhone && (
+            <div className="flex items-center gap-2 text-sm text-zinc-700">
+              <Phone size={14} strokeWidth={1.5} className="text-zinc-500" />
+              <span>{riderPhone}</span>
+            </div>
+          )}
           {loc?.user_note && (
             <div className="border-l-2 border-zinc-300 pl-3">
               <div className="flex items-center gap-1.5 mb-0.5">

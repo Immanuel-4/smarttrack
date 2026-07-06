@@ -6,7 +6,7 @@ import { reverseGeocode } from '../../utils/geocode'
 import { compressPhoto } from '../../utils/photoCompress'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Locate, Camera, X } from 'lucide-react'
+import { Locate, Camera, X, Image as ImageIcon } from 'lucide-react'
 
 const DEFAULT_CENTER = [6.5244, 3.3792] // Lagos
 
@@ -40,10 +40,13 @@ export default function RiderHome() {
   const [photo, setPhoto] = useState(null)
   const [photoInfo, setPhotoInfo] = useState(null)
   const [compressing, setCompressing] = useState(false)
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false)
 
   const geocodeTimer = useRef(null)
   const desktopFileRef = useRef(null)
+  const desktopGalleryFileRef = useRef(null)
   const mobileFileRef = useRef(null)
+  const mobileGalleryFileRef = useRef(null)
 
   const updateCode = useCallback((lat, lng) => {
     setPlusCode(encodePlusCode(lat, lng))
@@ -135,6 +138,7 @@ export default function RiderHome() {
     const file = e.target.files?.[0]
     if (!file) return
     setCompressing(true)
+    setShowPhotoDialog(false)
     try {
       const { dataUrl, base64, sizeKB } = await compressPhoto(file)
       setPhoto(dataUrl)
@@ -144,15 +148,26 @@ export default function RiderHome() {
     }
   }
 
+  const handlePhotoOptionClick = (option) => {
+    if (option === 'camera') {
+      desktopFileRef.current?.click()
+      mobileFileRef.current?.click()
+    } else {
+      desktopGalleryFileRef.current?.click()
+      mobileGalleryFileRef.current?.click()
+    }
+  }
+
   const clearPhoto = () => { setPhoto(null); setPhotoInfo(null) }
 
   // Shared JSX for the photo upload section (used in both panel and sheet)
-  const photoSection = (fileRef) => (
+  const photoSection = (fileRef, galleryFileRef) => (
     <>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+      <input ref={galleryFileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
       {!photo ? (
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setShowPhotoDialog(true)}
           disabled={compressing}
           className="w-full border border-dashed border-zinc-300 rounded-md bg-zinc-50 py-6 flex flex-col items-center gap-2 hover:bg-zinc-100 transition-colors"
         >
@@ -255,7 +270,7 @@ export default function RiderHome() {
             <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
               Pickup photo
             </label>
-            {photoSection(desktopFileRef)}
+            {photoSection(desktopFileRef, desktopGalleryFileRef)}
           </div>
         </div>
 
@@ -322,7 +337,7 @@ export default function RiderHome() {
               <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
                 Pickup photo
               </label>
-              {photoSection(mobileFileRef)}
+              {photoSection(mobileFileRef, mobileGalleryFileRef)}
             </div>
 
             <button
@@ -334,6 +349,37 @@ export default function RiderHome() {
           </div>
         </div>
       </div>
+
+      {/* Photo source dialog */}
+      {showPhotoDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[3000] p-4" onClick={() => setShowPhotoDialog(false)}>
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-medium text-zinc-900 mb-3">Add photo</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handlePhotoOptionClick('camera')}
+                className="w-full flex items-center gap-3 p-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors text-left"
+              >
+                <Camera size={18} strokeWidth={1.5} className="text-zinc-600" />
+                <span className="text-sm text-zinc-700">Take photo</span>
+              </button>
+              <button
+                onClick={() => handlePhotoOptionClick('gallery')}
+                className="w-full flex items-center gap-3 p-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors text-left"
+              >
+                <ImageIcon size={18} strokeWidth={1.5} className="text-zinc-600" />
+                <span className="text-sm text-zinc-700">Choose from gallery</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowPhotoDialog(false)}
+              className="w-full mt-3 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
