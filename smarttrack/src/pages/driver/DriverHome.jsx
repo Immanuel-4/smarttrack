@@ -14,6 +14,7 @@ export default function DriverHome() {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const driverMarkerRef = useRef(null)
+  const isMapValidRef = useRef(true) // Track if map is still valid
 
   useEffect(() => {
     if (!user) return
@@ -47,10 +48,18 @@ export default function DriverHome() {
     })
 
     navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      const pos = [coords.latitude, coords.longitude]
-      map.setView(pos, 15)
-      const marker = L.marker(pos, { icon: driverIcon }).addTo(map)
-      driverMarkerRef.current = marker
+      // Check if map is still valid before setting view (prevents race condition)
+      if (!isMapValidRef.current || !mapRef.current) return
+      
+      try {
+        const pos = [coords.latitude, coords.longitude]
+        map.setView(pos, 15)
+        const marker = L.marker(pos, { icon: driverIcon }).addTo(map)
+        driverMarkerRef.current = marker
+      } catch (err) {
+        // Ignore errors from map operations after cleanup
+        console.warn('Geolocation callback error (map may be removed):', err)
+      }
     }, () => {
       const pos = [6.5244, 3.3792]
       const marker = L.marker(pos, { icon: driverIcon }).addTo(map)
@@ -63,6 +72,7 @@ export default function DriverHome() {
     })
 
     return () => {
+      isMapValidRef.current = false
       navigator.geolocation?.clearWatch(watchId)
       map.remove()
       mapRef.current = null

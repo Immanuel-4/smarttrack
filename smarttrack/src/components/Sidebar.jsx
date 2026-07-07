@@ -33,7 +33,7 @@ export default function Sidebar({ userType }) {
     <aside className="w-60 bg-white border-r border-zinc-200 flex flex-col h-full shrink-0">
       <div className="p-5 border-b border-zinc-100">
         <div className="text-zinc-900 font-medium text-base">SmartTrack</div>
-        <div className="text-xs text-zinc-400 mt-0.5 capitalize">{userType} dashboard</div>
+        <div className="text-sm text-zinc-500 mt-0.5 capitalize">{userType} dashboard</div>
       </div>
 
       <nav className="flex-1 p-2 space-y-0.5">
@@ -62,10 +62,10 @@ export default function Sidebar({ userType }) {
 
       <div className="p-4 border-t border-zinc-100">
         <div className="text-sm font-medium text-zinc-900 mb-0.5">{profile?.name}</div>
-        <div className="text-xs text-zinc-400 mb-3">{profile?.email}</div>
+        <div className="text-sm text-zinc-500 mb-3 truncate">{profile?.email}</div>
         <button
           onClick={handleLogout}
-          className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+          className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
         >
           Sign out
         </button>

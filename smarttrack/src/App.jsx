@@ -11,6 +11,7 @@ import Register from './pages/Register'
 import RiderLayout from './components/RiderLayout'
 import RiderHome from './pages/rider/RiderHome'
 import PinAdjust from './pages/rider/PinAdjust'
+import DestinationSelect from './pages/rider/DestinationSelect'
 import Annotate from './pages/rider/Annotate'
 import RequestSummary from './pages/rider/RequestSummary'
 import ActiveTrip from './pages/rider/ActiveTrip'
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/rider" element={<RiderLayout />}>
                 <Route index element={<RiderHome />} />
                 <Route path="pin" element={<PinAdjust />} />
+                <Route path="destination" element={<DestinationSelect />} />
                 <Route path="annotate" element={<Annotate />} />
                 <Route path="summary" element={<RequestSummary />} />
                 <Route path="active" element={<ActiveTrip />} />

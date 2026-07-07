@@ -26,6 +26,7 @@ export default function RiderHome() {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
+  const isMapValidRef = useRef(true) // Track if map is still valid
   // Use a ref for pin-locked state so the Leaflet 'move' closure always reads the current value
   const pinLockedRef = useRef(false)
 
@@ -89,13 +90,25 @@ export default function RiderHome() {
     })
 
     navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      const pos = [coords.latitude, coords.longitude]
-      map.setView(pos, 16)
-      marker.setLatLng(pos)
-      updateCode(coords.latitude, coords.longitude)
+      // Check if map is still valid before setting view (prevents race condition)
+      if (!isMapValidRef.current || !mapRef.current) return
+      
+      try {
+        const pos = [coords.latitude, coords.longitude]
+        map.setView(pos, 16)
+        marker.setLatLng(pos)
+        updateCode(coords.latitude, coords.longitude)
+      } catch (err) {
+        // Ignore errors from map operations after cleanup
+        console.warn('Geolocation callback error (map may be removed):', err)
+      }
     })
 
-    return () => { map.remove(); mapRef.current = null }
+    return () => { 
+      isMapValidRef.current = false
+      map.remove(); 
+      mapRef.current = null 
+    }
   }, [])
 
   const recenter = () => {
@@ -119,20 +132,20 @@ export default function RiderHome() {
     setSheetOpen(false)
   }
 
-  // Submit: save to TripContext and navigate to summary (ride type selection)
-  const handleRequest = () => {
-    const latlng = markerRef.current?.getLatLng() ?? mapRef.current?.getCenter()
-    if (!latlng) return
-    setPickupLocation({
-      plus_code: plusCode,
-      coordinates: { lat: latlng.lat, lng: latlng.lng },
-      area_label: areaLabel,
-      input_method: 'map',
-      user_note: note,
-      photo_base64: photoInfo?.base64 ?? null,
-    })
-    navigate('/rider/summary')
-  }
+// Submit: save to TripContext and navigate to destination selection
+const handleRequest = () => {
+  const latlng = markerRef.current?.getLatLng() ?? mapRef.current?.getCenter()
+  if (!latlng) return
+  setPickupLocation({
+    plus_code: plusCode,
+    coordinates: { lat: latlng.lat, lng: latlng.lng },
+    area_label: areaLabel,
+    input_method: 'map',
+    user_note: note,
+    photo_base64: photoInfo?.base64 ?? null,
+  })
+  navigate('/rider/destination')  
+}
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]

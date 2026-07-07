@@ -16,13 +16,13 @@ export default function DemoBar() {
 
   return (
     <div className="bg-white border-b border-zinc-200 px-4 py-2 flex items-center justify-between">
-      <span className="text-xs font-medium text-zinc-900 tracking-wide">SmartTrack</span>
+      <span className="text-sm font-medium text-zinc-900 tracking-wide">SmartTrack</span>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-zinc-400 mr-1">View as</span>
+        <span className="text-sm text-zinc-500 mr-1">View as</span>
         <div className="flex rounded-md border border-zinc-200 overflow-hidden">
           <button
             onClick={() => switchTo('rider')}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
               effectiveView === 'rider'
                 ? 'bg-zinc-900 text-white'
                 : 'bg-white text-zinc-500 hover:bg-zinc-50'
@@ -32,7 +32,7 @@ export default function DemoBar() {
           </button>
           <button
             onClick={() => switchTo('driver')}
-            className={`px-3 py-1 text-xs font-medium transition-colors border-l border-zinc-200 ${
+            className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-zinc-200 ${
               effectiveView === 'driver'
                 ? 'bg-zinc-900 text-white'
                 : 'bg-white text-zinc-500 hover:bg-zinc-50'

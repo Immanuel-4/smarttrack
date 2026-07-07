@@ -7,7 +7,7 @@ import { Camera, X, ArrowLeft, Image as ImageIcon } from 'lucide-react'
 
 export default function Annotate() {
   const navigate = useNavigate()
-  const { pickupLocation, setPickupLocation } = useTrip()
+  const { pickupLocation, setPickupLocation, destination } = useTrip()
   const [note, setNote] = useState(pickupLocation?.user_note || '')
   const [photo, setPhoto] = useState(pickupLocation?.photo_base64 ? `data:image/jpeg;base64,${pickupLocation.photo_base64}` : null)
   const [photoInfo, setPhotoInfo] = useState(null)
@@ -15,6 +15,12 @@ export default function Annotate() {
   const [showPhotoDialog, setShowPhotoDialog] = useState(false)
   const fileRef = useRef(null)
   const galleryFileRef = useRef(null)
+
+  // If pickup or destination is missing, redirect to start
+  if (!pickupLocation || !destination) {
+    navigate('/rider')
+    return null
+  }
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]

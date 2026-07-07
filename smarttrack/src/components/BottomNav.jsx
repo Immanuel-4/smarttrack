@@ -27,8 +27,8 @@ export default function BottomNav({ userType }) {
           to={to}
           end={to === '/rider' || to === '/driver'}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors ${
-              isActive ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
+            `flex-1 flex flex-col items-center gap-1 py-3 text-sm font-medium transition-colors ${
+              isActive ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
             }`
           }
         >

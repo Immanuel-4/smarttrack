@@ -9,16 +9,16 @@ import PlusCodeChip from '../../components/PlusCodeChip'
 import { Car, User, X } from 'lucide-react'
 
 const STATUS_CONFIG = {
-  PENDING:     { label: 'Finding a driver…',  cls: 'bg-zinc-100 text-zinc-600' },
-  ACCEPTED:    { label: 'Driver on the way',   cls: 'bg-zinc-900 text-white' },
-  IN_PROGRESS: { label: 'Ride in progress',    cls: 'bg-zinc-900 text-white' },
-  COMPLETED:   { label: 'Trip completed',      cls: 'bg-zinc-100 text-zinc-500' },
-  CANCELLED:   { label: 'Trip cancelled',      cls: 'bg-red-50 text-red-600 border border-red-100' },
+  PENDING:     { label: 'Finding a driver…',           cls: 'bg-zinc-100 text-zinc-600' },
+  ACCEPTED:    { label: 'Driver approaching pickup',    cls: 'bg-zinc-900 text-white' },
+  IN_PROGRESS: { label: 'En route to destination',       cls: 'bg-zinc-900 text-white' },
+  COMPLETED:   { label: 'Trip completed',               cls: 'bg-zinc-100 text-zinc-500' },
+  CANCELLED:   { label: 'Trip cancelled',               cls: 'bg-red-50 text-red-600 border border-red-100' },
 }
 
 export default function ActiveTrip() {
   const navigate = useNavigate()
-  const { activeTrip, setActiveTrip, pickupLocation } = useTrip()
+  const { activeTrip, setActiveTrip, pickupLocation, destination } = useTrip()
   const [trip, setTrip] = useState(null)
   const [driverProfile, setDriverProfile] = useState(null)
   const [driverPos, setDriverPos] = useState(null)
@@ -27,6 +27,7 @@ export default function ActiveTrip() {
   const mapRef = useRef(null)
   const driverMarkerRef = useRef(null)
   const pickupMarkerRef = useRef(null)
+  const destinationMarkerRef = useRef(null)
   const mockIntervalRef = useRef(null)
 
   useEffect(() => {
@@ -46,23 +47,27 @@ export default function ActiveTrip() {
   }, [trip?.driverId])
 
   useEffect(() => {
-    if (trip?.status !== 'ACCEPTED') {
+    if (trip?.status !== 'ACCEPTED' && trip?.status !== 'IN_PROGRESS') {
       clearInterval(mockIntervalRef.current)
       return
     }
-    const pickup = trip.pickup_location?.coordinates
-    if (!pickup) return
+    
+    // Determine target based on phase: ACCEPTED = pickup, IN_PROGRESS = destination
+    const target = trip?.status === 'ACCEPTED' 
+      ? trip.pickup_location?.coordinates 
+      : trip.destination?.coordinates
+    if (!target) return
 
-    const startLat = pickup.lat + (Math.random() - 0.5) * 0.01
-    const startLng = pickup.lng + (Math.random() - 0.5) * 0.01
+    const startLat = target.lat + (Math.random() - 0.5) * 0.01
+    const startLng = target.lng + (Math.random() - 0.5) * 0.01
     const pos = { lat: startLat, lng: startLng }
     setDriverPos({ ...pos })
 
     mockIntervalRef.current = setInterval(() => {
-      pos.lat += (pickup.lat - pos.lat) * 0.15
-      pos.lng += (pickup.lng - pos.lng) * 0.15
+      pos.lat += (target.lat - pos.lat) * 0.15
+      pos.lng += (target.lng - pos.lng) * 0.15
       setDriverPos({ lat: pos.lat, lng: pos.lng })
-      const km = haversineKm(pos.lat, pos.lng, pickup.lat, pickup.lng)
+      const km = haversineKm(pos.lat, pos.lng, target.lat, target.lng)
       setEta(Math.max(1, Math.round((km / 30) * 60)))
     }, 3000)
 
@@ -83,8 +88,20 @@ export default function ActiveTrip() {
     pin.bindPopup('Your pickup').openPopup()
     pickupMarkerRef.current = pin
 
-    return () => { map.remove(); mapRef.current = null }
-  }, [])
+    // Add destination marker if destination exists
+    if (destination?.coordinates) {
+      const destPin = L.marker([destination.coordinates.lat, destination.coordinates.lng]).addTo(map)
+      destPin.bindPopup('Your destination').openPopup()
+      destinationMarkerRef.current = destPin
+    }
+
+    return () => { 
+      map.remove(); 
+      mapRef.current = null 
+      pickupMarkerRef.current = null
+      destinationMarkerRef.current = null
+    }
+  }, [destination])
 
   useEffect(() => {
     if (!mapRef.current || !driverPos) return
@@ -135,7 +152,7 @@ export default function ActiveTrip() {
           <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.cls}`}>
             {statusInfo.label}
           </span>
-          {eta && status === 'ACCEPTED' && (
+          {eta && (status === 'ACCEPTED' || status === 'IN_PROGRESS') && (
             <span className="text-xs text-zinc-500">ETA ~{eta} min</span>
           )}
         </div>

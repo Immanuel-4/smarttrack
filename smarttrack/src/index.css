@@ -14,6 +14,13 @@
     border: none;
     min-height: 100svh;
     display: block;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply text-base text-zinc-900 leading-relaxed;
   }
 
   * {
@@ -23,19 +30,19 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-zinc-900 text-white font-medium py-2 px-4 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-center text-sm;
+    @apply bg-zinc-900 text-white font-medium py-2.5 px-4 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-center text-base;
   }
 
   .btn-secondary {
-    @apply bg-white border border-zinc-200 text-zinc-700 font-medium py-2 px-4 rounded-md hover:bg-zinc-50 transition-colors w-full text-center text-sm;
+    @apply bg-white border border-zinc-200 text-zinc-700 font-medium py-2.5 px-4 rounded-md hover:bg-zinc-50 transition-colors w-full text-center text-base;
   }
 
   .btn-danger {
-    @apply bg-white border border-red-200 text-red-600 font-medium py-2 px-4 rounded-md hover:bg-red-50 transition-colors w-full text-center text-sm;
+    @apply bg-white border border-red-200 text-red-600 font-medium py-2.5 px-4 rounded-md hover:bg-red-50 transition-colors w-full text-center text-base;
   }
 
   .btn-ghost {
-    @apply text-zinc-500 font-medium py-2 px-4 rounded-md hover:bg-zinc-100 hover:text-zinc-900 transition-colors text-sm;
+    @apply text-zinc-600 font-medium py-2.5 px-4 rounded-md hover:bg-zinc-100 hover:text-zinc-900 transition-colors text-base;
   }
 
   .card {
@@ -43,7 +50,7 @@
   }
 
   .input-field {
-    @apply w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 transition-colors;
+    @apply w-full border border-zinc-200 rounded-md px-3 py-2.5 text-base bg-white text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 transition-colors;
   }
 }
 
