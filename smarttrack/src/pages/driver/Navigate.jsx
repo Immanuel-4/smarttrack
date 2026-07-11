@@ -10,6 +10,7 @@ import {
   onSnapshot,
   updateDoc,
   serverTimestamp,
+  getDoc,
 } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
@@ -17,7 +18,7 @@ import { useAuth } from '../../context/useAuth'
 import { bearingDeg, haversineKm } from '../../utils/distance'
 import { cacheTrip, clearTripCache, loadCachedTrip } from '../../utils/tripCache'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X } from 'lucide-react'
+import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X, Phone } from 'lucide-react'
 
 export default function Navigate() {
   const location = useLocation()
@@ -33,6 +34,8 @@ export default function Navigate() {
   const [bearing, setBearing] = useState(0)
   const [distKm, setDistKm] = useState(null)
   const [cancelling, setCancelling] = useState(false)
+  const [showArrivalModal, setShowArrivalModal] = useState(false)
+  const [riderPhone, setRiderPhone] = useState(null)
   
   // Navigation phase: 'toPickup' (driver going to pickup) or 'toDestination' (driver going to destination)
   const [navPhase, setNavPhase] = useState('toPickup')
@@ -106,6 +109,12 @@ export default function Navigate() {
           setTrip(data)
           setDataSource('firestore')
           cacheTrip(data)
+          
+          // If trip is completed by rider, navigate back to home
+          if (data.status === 'COMPLETED') {
+            clearTripCache()
+            navigate('/driver')
+          }
         }
       },
       err => {
@@ -119,6 +128,15 @@ export default function Navigate() {
     )
     return unsub
   }, [tripId])
+
+  // Fetch rider phone number when trip data is available
+  useEffect(() => {
+    if (trip?.riderId && !riderPhone) {
+      getDoc(doc(db, 'users', trip.riderId)).then(snap => {
+        if (snap.exists()) setRiderPhone(snap.data().phone)
+      })
+    }
+  }, [trip?.riderId])
 
   // --- Map setup ---
   useEffect(() => {
@@ -224,22 +242,25 @@ export default function Navigate() {
   // --- Status transitions (driven by Firestore, reflected live via the listener) ---
   const handleArrived = async () => {
     if (!tripId) return
+    // Show arrival modal instead of directly changing status
+    setShowArrivalModal(true)
+  }
+
+  const handleCallRider = () => {
+    if (riderPhone) {
+      window.location.href = `tel:${riderPhone}`
+    }
+  }
+
+  const confirmArrival = async () => {
+    if (!tripId) return
     // When arriving at pickup, switch to destination phase
     await updateDoc(doc(db, 'trips', tripId), {
       status: 'IN_PROGRESS',
       updatedAt: serverTimestamp(),
     })
     setNavPhase('toDestination')
-  }
-
-  const handleComplete = async () => {
-    if (!tripId) return
-    await updateDoc(doc(db, 'trips', tripId), {
-      status: 'COMPLETED',
-      updatedAt: serverTimestamp(),
-    })
-    clearTripCache()
-    navigate('/driver')
+    setShowArrivalModal(false)
   }
 
   const handleCancel = async () => {
@@ -389,12 +410,52 @@ export default function Navigate() {
           <div className="space-y-3">
             <div className="bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm px-3 py-2.5 rounded-md text-center flex items-center justify-center gap-1.5">
               <Check size={14} strokeWidth={1.5} className="text-green-600" />
-              Waiting for rider — trip in progress
+              Waiting for rider to confirm meeting
             </div>
-            <button onClick={handleComplete} className="btn-primary">Mark trip as completed</button>
+            <p className="text-xs text-zinc-500 text-center">
+              The rider will confirm when they meet you to complete the trip.
+            </p>
           </div>
         )}
       </div>
+
+      {/* Arrival Modal */}
+      {showArrivalModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Check size={24} strokeWidth={1.5} className="text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-900 mb-1">You've Arrived!</h3>
+              <p className="text-sm text-zinc-600">Call the rider to confirm pickup location.</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleCallRider}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                <Phone size={16} strokeWidth={1.5} />
+                Call Rider
+              </button>
+              <button
+                onClick={confirmArrival}
+                className="w-full btn-secondary flex items-center justify-center gap-2"
+              >
+                <Check size={16} strokeWidth={1.5} />
+                Confirm Pickup
+              </button>
+              <button
+                onClick={() => setShowArrivalModal(false)}
+                className="w-full text-sm text-zinc-500 hover:text-zinc-900 transition-colors py-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

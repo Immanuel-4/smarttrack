@@ -6,12 +6,12 @@ import { db } from '../../firebase/config'
 import { useTrip } from '../../context/useTrip'
 import { haversineKm } from '../../utils/distance'
 import PlusCodeChip from '../../components/PlusCodeChip'
-import { Car, User, X } from 'lucide-react'
+import { Car, User, X, Check } from 'lucide-react'
 
 const STATUS_CONFIG = {
   PENDING:     { label: 'Finding a driver…',           cls: 'bg-zinc-100 text-zinc-600' },
   ACCEPTED:    { label: 'Driver approaching pickup',    cls: 'bg-zinc-900 text-white' },
-  IN_PROGRESS: { label: 'En route to destination',       cls: 'bg-zinc-900 text-white' },
+  IN_PROGRESS: { label: 'Driver has arrived - confirm meeting', cls: 'bg-green-100 text-green-700 border border-green-200' },
   COMPLETED:   { label: 'Trip completed',               cls: 'bg-zinc-100 text-zinc-500' },
   CANCELLED:   { label: 'Trip cancelled',               cls: 'bg-red-50 text-red-600 border border-red-100' },
 }
@@ -121,7 +121,20 @@ export default function ActiveTrip() {
   const handleCancel = async () => {
     if (!activeTrip?.id) return
     await updateDoc(doc(db, 'trips', activeTrip.id), {
-      status: 'CANCELLED', updatedAt: serverTimestamp(),
+      status: 'CANCELLED',
+      cancelledBy: 'RIDER',
+      driverId: null, // Release driver back to pool
+      updatedAt: serverTimestamp(),
+    })
+    setActiveTrip(null)
+    navigate('/rider')
+  }
+
+  const handleConfirmMeeting = async () => {
+    if (!activeTrip?.id) return
+    await updateDoc(doc(db, 'trips', activeTrip.id), {
+      status: 'COMPLETED',
+      updatedAt: serverTimestamp(),
     })
     setActiveTrip(null)
     navigate('/rider')
@@ -166,7 +179,7 @@ export default function ActiveTrip() {
           </div>
         )}
 
-        {driverProfile && status === 'ACCEPTED' && (
+        {driverProfile && (status === 'ACCEPTED' || status === 'IN_PROGRESS') && (
           <div className="bg-zinc-50 border border-zinc-100 rounded-md p-3 flex items-center gap-3">
             <div className="w-8 h-8 bg-zinc-200 rounded-full flex items-center justify-center shrink-0">
               <User size={14} strokeWidth={1.5} className="text-zinc-600" />
@@ -183,6 +196,15 @@ export default function ActiveTrip() {
             <span className="flex items-center justify-center gap-1.5">
               <X size={14} strokeWidth={1.5} />
               Cancel trip
+            </span>
+          </button>
+        )}
+
+        {status === 'IN_PROGRESS' && (
+          <button onClick={handleConfirmMeeting} className="btn-primary">
+            <span className="flex items-center justify-center gap-1.5">
+              <Check size={14} strokeWidth={1.5} />
+              Confirm Meeting Driver
             </span>
           </button>
         )}

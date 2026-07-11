@@ -12,6 +12,8 @@ A modern ride-sharing platform built with React that connects riders with driver
 - **Dual-Phase Tracking**: Track driver approaching pickup and en route to destination
 - **Fare Estimation**: View estimated fare before requesting a ride
 - **Trip History**: View past trips and ratings
+- **Trip Cancellation**: Cancel active trips while searching for driver or after driver acceptance
+- **Driver Confirmation**: Confirm meeting with driver to complete trip
 
 ### For Drivers
 - **Request Management**: View and accept incoming ride requests
@@ -19,7 +21,8 @@ A modern ride-sharing platform built with React that connects riders with driver
 - **Dual-Phase Navigation**: Navigate to pickup location, then to destination
 - **Map Options**: Toggle between satellite imagery and street maps
 - **Rider Communication**: View rider phone numbers and call riders directly
-- **Trip Completion**: Mark trips as completed when finished
+- **Arrival Confirmation**: Confirm arrival at pickup with call rider prompt
+- **Trip Completion**: Trips completed when rider confirms meeting
 
 ### System Features
 - **User Authentication**: Firebase-based authentication with email/password
@@ -174,6 +177,7 @@ smarttrack/
   riderId: string,
   driverId: string,
   status: 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
+  cancelledBy: 'RIDER' | 'DRIVER', // Optional, tracks who cancelled the trip
   pickup_location: {
     coordinates: { lat, lng },
     plus_code: string,
@@ -196,50 +200,223 @@ smarttrack/
 ## Key Features Implementation
 
 ### Destination Selection
-- Reuses existing pin-drop UI for destination selection (DestinationSelect.jsx)
-- Simplified schema: coordinates, plus_code, area_label (no photo/note for destination)
+**How it works:**
+1. After selecting pickup location on RiderHome, user confirms via PinAdjust
+2. Navigation redirects to DestinationSelect page with interactive map
+3. User drops a pin on the map to select destination location
+4. Map displays real-time Plus Code as user moves the pin
+5. On confirmation, destination data (coordinates, plus_code, area_label) is saved to TripContext
+6. User proceeds to Annotate page for optional pickup photo/notes
+
+**Technical Implementation:**
+- Reuses pin-drop UI pattern from PinAdjust.jsx for consistency
+- Simplified destination schema: only coordinates, plus_code, area_label (no photo/note)
+- Uses Leaflet map with OpenStreetMap tiles
+- Plus Code generation via encodePlusCode utility
+- State managed through TripContext (destination, setDestination)
 - Booking flow: RiderHome → PinAdjust → DestinationSelect → Annotate → RequestSummary
-- Intentional scoping decision: Pin-drop instead of address search to keep complexity manageable
+
+**Design Decision:**
+Pin-drop selection instead of address search API to keep complexity manageable for academic scope while still providing precise location selection.
 
 ### Driver Matching Algorithm
-- Distance-based matching using Haversine formula (matchDriver.js)
-- Driver rating as tiebreaker when distances are equal
-- Queries all drivers and assigns best match at trip creation
-- Simple approach suitable for academic scope (no real-time location tracking)
+**How it works:**
+1. When rider requests trip, system queries all available drivers from Firestore
+2. Each driver's distance to pickup location is calculated using Haversine formula
+3. Drivers are ranked by distance (closest first)
+4. If distances are equal, driver rating serves as tiebreaker (higher rating wins)
+5. Best driver is assigned to the trip immediately
+6. Trip document is created with driverId, status set to PENDING
+
+**Technical Implementation:**
+- Haversine distance calculation in `src/utils/distance.js`
+- Driver ranking and selection in `src/utils/matchDriver.js`
+- Functions: `rankDrivers(pickupCoords, drivers)` and `findBestDriver(pickupCoords, drivers)`
+- Simple approach suitable for academic scope (no real-time driver location tracking)
+- All drivers considered "available" for simplicity (production would filter by status)
+
+**Algorithm:**
+```
+1. For each driver:
+   - Calculate distance to pickup using Haversine formula
+   - Store distance and rating
+2. Sort drivers by distance (ascending)
+3. For ties, sort by rating (descending)
+4. Return top-ranked driver
+```
 
 ### Dual-Phase Navigation
-- Navigate.jsx supports two phases: 'toPickup' and 'toDestination'
-- Phase transition: ACCEPTED → IN_PROGRESS when driver arrives at pickup
-- Target coordinates switch from pickup to destination after phase change
-- ActiveTrip.jsx shows phase-specific status labels and ETA
+**How it works:**
+1. Driver accepts trip → status changes to ACCEPTED, navigation phase set to 'toPickup'
+2. Driver sees route from current location to pickup point
+3. Upon arrival at pickup, driver taps "Arrived" button
+4. Status changes to IN_PROGRESS, navigation phase switches to 'toDestination'
+5. Driver sees route from pickup to destination for passenger transport
+6. Upon reaching destination, driver completes trip
+
+**Technical Implementation:**
+- Navigate.jsx manages `navPhase` state ('toPickup' | 'toDestination')
+- Target coordinates dynamically switch based on phase:
+  - toPickup: `trip.pickup_location.coordinates`
+  - toDestination: `trip.destination.coordinates`
+- Phase transition triggered by driver action in handleArrived()
+- Map markers and route refresh on phase change
+- ActiveTrip.jsx displays phase-specific status labels:
+  - ACCEPTED: "Driver approaching pickup"
+  - IN_PROGRESS: "Driver has arrived - confirm meeting"
+
+**Status Flow:**
+```
+PENDING → ACCEPTED (toPickup) → IN_PROGRESS (waiting for rider confirmation) → COMPLETED
+```
+
+### Trip Cancellation & Rider Confirmation Lifecycle
+
+**How it works:**
+1. **Rider Cancellation**: Riders can cancel active trips while searching for driver or after driver acceptance
+2. **Driver Release**: When rider cancels, driver is released back to active pool (driverId set to null)
+3. **Driver Arrival**: When driver arrives at pickup, a modal prompts them to call the rider
+4. **Rider Confirmation**: Trip completes when rider confirms meeting with driver (not manual driver completion)
+5. **Real-time Sync**: All status changes sync instantly between rider and driver apps via Firestore
+
+**Technical Implementation:**
+- Cancellation in `ActiveTrip.jsx` with `cancelledBy: 'RIDER'` and `driverId: null`
+- Driver arrival modal in `Navigate.jsx` with phone call functionality via `tel:` protocol
+- Rider confirmation button in `ActiveTrip.jsx` for IN_PROGRESS status
+- Real-time listener in `Navigate.jsx` auto-navigates driver home when trip completes
+- Firestore real-time listeners ensure instant state synchronization
+
+**Cancellation Flow:**
+```
+Rider clicks "Cancel trip" → Status: CANCELLED, cancelledBy: RIDER, driverId: null
+→ Driver notified via real-time listener → Driver sees cancellation screen
+→ Rider redirected to home map
+```
+
+**Arrival & Confirmation Flow:**
+```
+Driver clicks "I've arrived" → Modal appears with "Call Rider" button
+→ Driver calls rider to confirm pickup location
+→ Driver clicks "Confirm Pickup" → Status: IN_PROGRESS
+→ Rider sees "Confirm Meeting Driver" button
+→ Rider clicks "Confirm Meeting Driver" → Status: COMPLETED
+→ Driver auto-navigated to home screen
+```
 
 ### Fare Calculation
-- Simple formula: base fare (₦500) + distance (km) × per-km rate (₦100)
-- Calculated at trip creation using Haversine distance
-- Stored as estimatedFare in trip document
-- Displayed to rider before trip confirmation
+**How it works:**
+1. Rider selects pickup and destination locations
+2. System calculates distance between coordinates using Haversine formula
+3. Fare is computed: base fare + (distance × per-km rate)
+4. Estimated fare displayed to rider on RequestSummary page
+5. Fare stored in trip document as estimatedFare
+6. Rider can review fare before confirming trip request
+
+**Technical Implementation:**
+- Fare calculation in `src/utils/fare.js`
+- Formula: `baseFare (₦500) + distanceKm × perKmRate (₦100)`
+- Example: 5km trip = ₦500 + (5 × ₦100) = ₦1,000
+- Functions: `calculateFare(pickupCoords, destCoords)` and `getFareConfig()`
+- Distance calculated using Haversine formula from distance.js
+- Fare displayed in RequestSummary component before trip creation
+
+**Configuration:**
+```javascript
+{
+  baseFare: 500,      // ₦500 minimum fare
+  perKmRate: 100,     // ₦100 per kilometer
+  currency: '₦'
+}
+```
 
 ### Photo Upload System
-- Supports both camera capture and gallery selection
-- Automatic photo compression for efficient storage
-- Base64 encoding for Firestore compatibility
+**How it works:**
+1. On Annotate page, rider can optionally add pickup location photo
+2. User taps "Add photo" button to open dialog
+3. Chooses between camera capture or gallery selection
+4. Selected photo is automatically compressed to reduce file size
+5. Compressed photo converted to Base64 string
+6. Photo stored in trip document's pickup_location.photo_base64 field
+7. Driver can view photo to help locate rider
+
+**Technical Implementation:**
+- Photo compression in `src/utils/photoCompress.js`
+- Supports both camera capture and file gallery selection
+- Compression reduces image quality/size for efficient Firestore storage
+- Base64 encoding for Firestore document compatibility
+- Optional feature - rider can skip and continue without photo
+- Photo displayed in RequestSummary and ActiveTrip for driver reference
 
 ### Map Integration
-- Dual map layers: OpenStreetMap (street) and Esri (satellite)
-- Real-time driver location tracking
-- Route visualization between driver and target points
-- Plus Code integration for precise location identification
+**How it works:**
+1. Interactive Leaflet maps throughout the application
+2. Riders use maps for pickup/destination selection
+3. Drivers use maps for navigation and route visualization
+4. Real-time driver location tracking with marker updates
+5. Route lines drawn between driver and target points
+6. Plus Code chips display precise location identifiers
+
+**Technical Implementation:**
+- Leaflet.js for interactive mapping
+- Dual tile layers:
+  - OpenStreetMap: Standard street maps (default)
+  - Esri World Imagery: Satellite/aerial imagery (toggleable)
+- Real-time location tracking via Geolocation API
+- Route visualization using Leaflet polylines
+- Plus Code integration via Open Location Code library
+- Default center: Lagos, Nigeria (6.5244, 3.3792)
+- Maximum zoom level: 19 for precise location selection
+
+**Map Components:**
+- RiderHome: Pin-drop for pickup selection
+- PinAdjust: Fine-tune pickup location
+- DestinationSelect: Pin-drop for destination selection
+- DriverHome: Driver current location display
+- Navigate: Route navigation with dual phases
+- ActiveTrip: Real-time driver tracking
 
 ### Real-time Communication
-- Firestore listeners for instant trip status updates
-- Offline caching for continued operation without internet
-- Automatic reconnection when connectivity restored
+**How it works:**
+1. Firestore real-time listeners monitor trip status changes
+2. When driver accepts trip, rider sees immediate status update
+3. Driver location updates in real-time during navigation
+4. Trip status changes trigger UI updates on both rider and driver apps
+5. Offline caching ensures continued operation without internet
+6. Automatic reconnection when connectivity restored
+
+**Technical Implementation:**
+- Firestore onSnapshot() listeners for real-time updates
+- Trip status monitoring in ActiveTrip.jsx and Navigate.jsx
+- Offline caching via tripCache.js for navigation without internet
+- Automatic reconnection handling by Firestore SDK
+- Status changes trigger immediate UI refresh
+- Rider sees driver approaching, driver sees trip requests instantly
+
+**Status Updates:**
+- PENDING: Trip created, awaiting driver acceptance
+- ACCEPTED: Driver assigned, approaching pickup
+- IN_PROGRESS: Driver has arrived, waiting for rider to confirm meeting
+- COMPLETED: Trip finished (confirmed by rider)
+- CANCELLED: Trip cancelled by rider or driver
 
 ### User Experience
-- Phone number validation (10-15 digits)
-- Dismissible prompts for missing profile information
-- Responsive design for mobile and desktop
-- Loading states and error handling throughout
+**How it works:**
+1. Phone number validation (10-15 digits) during registration
+2. Dismissible prompts for missing profile information
+3. Responsive design adapts to mobile and desktop screens
+4. Loading states during async operations (trip creation, driver matching)
+5. Error handling with user-friendly messages
+6. Intuitive booking flow with clear step progression
+7. Visual feedback for user actions (button presses, form submissions)
+
+**Technical Implementation:**
+- Form validation with regex patterns
+- Toast notifications and inline error messages
+- Loading spinners and skeleton screens
+- Mobile-first responsive design with TailwindCSS
+- Consistent UI patterns across rider/driver interfaces
+- Clear visual hierarchy and affordance
+- Accessibility considerations (contrast, touch targets)
 
 ## Development Notes
 
