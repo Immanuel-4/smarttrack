@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { encodePlusCode } from '../../utils/plusCode'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import TileLayerToggle from '../../components/TileLayerToggle'
 import { ArrowLeft } from 'lucide-react'
 
 export default function PinAdjust() {
@@ -11,6 +12,7 @@ export default function PinAdjust() {
   const { pickupLocation, setPickupLocation } = useTrip()
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const [mapInstance, setMapInstance] = useState(null)
   const isMapValidRef = useRef(true)
   const [plusCode, setPlusCode] = useState(pickupLocation?.plus_code || '')
 
@@ -26,6 +28,7 @@ export default function PinAdjust() {
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
+    setMapInstance(map)
 
     requestAnimationFrame(() => map.invalidateSize())
     const resizeTimer = setTimeout(() => {
@@ -75,6 +78,10 @@ export default function PinAdjust() {
         >
           <ArrowLeft size={18} strokeWidth={1.5} />
         </button>
+
+        <div className="absolute top-4 right-4 z-[1000]">
+          <TileLayerToggle map={mapInstance} />
+        </div>
       </div>
 
       <div className="hidden md:flex flex-col w-80 lg:w-96 bg-white border-l border-zinc-200 shrink-0">

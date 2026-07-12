@@ -18,6 +18,7 @@ import { useAuth } from '../../context/useAuth'
 import { bearingDeg, haversineKm } from '../../utils/distance'
 import { cacheTrip, clearTripCache, loadCachedTrip } from '../../utils/tripCache'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import TileLayerToggle from '../../components/TileLayerToggle'
 import { Navigation, Flag, FileText, Check, Wifi, WifiOff, XCircle, X, Phone } from 'lucide-react'
 
 export default function Navigate() {
@@ -36,6 +37,7 @@ export default function Navigate() {
   const [cancelling, setCancelling] = useState(false)
   const [showArrivalModal, setShowArrivalModal] = useState(false)
   const [riderPhone, setRiderPhone] = useState(null)
+  const [showCompletedScreen, setShowCompletedScreen] = useState(false)
   
   // Navigation phase: 'toPickup' (driver going to pickup) or 'toDestination' (driver going to destination)
   const [navPhase, setNavPhase] = useState('toPickup')
@@ -51,6 +53,7 @@ export default function Navigate() {
 
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const [mapInstance, setMapInstance] = useState(null)
   const myMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
   const routeLayerRef = useRef(null)
@@ -110,10 +113,10 @@ export default function Navigate() {
           setDataSource('firestore')
           cacheTrip(data)
           
-          // If trip is completed by rider, navigate back to home
+          // If trip is completed by rider, show completion screen
           if (data.status === 'COMPLETED') {
+            setShowCompletedScreen(true)
             clearTripCache()
-            navigate('/driver')
           }
         }
       },
@@ -142,15 +145,13 @@ export default function Navigate() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
     const map = L.map(mapContainer.current, { zoomControl: false }).setView([6.5244, 3.3792], 15)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-      maxZoom: 19,
-    }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
+    setMapInstance(map)
     return () => {
       map.remove()
       mapRef.current = null
+      setMapInstance(null)
       routeLayerRef.current = null
       lastRouteFetchRef.current = 0
     }
@@ -233,7 +234,6 @@ export default function Navigate() {
             lineCap: 'round',
             lineJoin: 'round',
           }).addTo(mapRef.current)
-          myMarkerRef.current?.bringToFront()
         })
         .catch(err => console.warn('Route fetch failed:', err))
     }
@@ -261,6 +261,16 @@ export default function Navigate() {
     })
     setNavPhase('toDestination')
     setShowArrivalModal(false)
+  }
+
+  const handleCompleteTrip = async () => {
+    if (!tripId) return
+    await updateDoc(doc(db, 'trips', tripId), {
+      status: 'COMPLETED',
+      updatedAt: serverTimestamp(),
+    })
+    clearTripCache()
+    navigate('/driver/requests')
   }
 
   const handleCancel = async () => {
@@ -309,6 +319,38 @@ export default function Navigate() {
     )
   }
 
+  // Trip completed - show receipt screen
+  if (showCompletedScreen) {
+    const fare = trip?.estimatedFare || 0
+    return (
+      <div className="h-full flex items-center justify-center bg-zinc-50">
+        <div className="text-center p-8 max-w-sm w-full">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check size={32} strokeWidth={1.5} className="text-green-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-zinc-900 mb-2">Trip Completed!</h2>
+          <p className="text-sm text-zinc-600 mb-6">The rider has confirmed the meeting. Great job!</p>
+          
+          <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
+            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium mb-2">Trip Fare</p>
+            <p className="text-3xl font-bold text-zinc-900 mb-1">₦{fare.toLocaleString()}</p>
+            <p className="text-xs text-zinc-500">Base fare ₦500 + ₦100/km</p>
+          </div>
+          
+          <button
+            onClick={() => {
+              setShowCompletedScreen(false)
+              navigate('/driver/requests')
+            }}
+            className="btn-primary w-full"
+          >
+            View New Requests
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // The ride was cancelled (by the rider or the driver) — react live
   if (cancelled) {
     return (
@@ -335,9 +377,32 @@ export default function Navigate() {
 
   return (
     <div className="h-full flex flex-col md:flex-row">
-      <div ref={mapContainer} className="flex-1" />
+      <div className="relative flex-1">
+          <div ref={mapContainer} className="w-full h-full" />
+          
+          {/* Re-center button — always visible */}
+          <button
+            onClick={() => {
+              if (mapRef.current && myPos) {
+                mapRef.current.flyTo([myPos.lat, myPos.lng], 15, {
+                  duration: 1,
+                  easeLinearity: 0.25,
+                })
+              }
+            }}
+            className="absolute top-4 right-4 bg-white rounded-full shadow-lg p-3 hover:bg-zinc-50 transition-colors z-[1000]"
+            title="Re-center map"
+          >
+            <Navigation size={20} className="text-zinc-700" />
+          </button>
+          
+          {/* Tile layer toggle — always visible */}
+          <div className="absolute top-4 left-4 z-[1000]">
+            <TileLayerToggle map={mapInstance} />
+          </div>
+      </div>
 
-      <div className="bg-white border-t border-zinc-200 md:border-t-0 md:border-l p-4 space-y-3 overflow-y-auto pb-20 md:w-80 md:pb-6">
+      <div className="bg-white border-t border-zinc-200 md:border-t-0 md:border-l p-4 space-y-3 overflow-y-auto max-h-[30vh] md:max-h-none pb-4 md:pb-6 md:w-80">
         {/* Distance + Plus Code */}
         <div className="flex items-center gap-4">
           <div
@@ -415,6 +480,13 @@ export default function Navigate() {
             <p className="text-xs text-zinc-500 text-center">
               The rider will confirm when they meet you to complete the trip.
             </p>
+            <button
+              onClick={handleCompleteTrip}
+              className="btn-primary w-full flex items-center justify-center gap-1.5"
+            >
+              <Check size={14} strokeWidth={1.5} />
+              Complete Trip
+            </button>
           </div>
         )}
       </div>

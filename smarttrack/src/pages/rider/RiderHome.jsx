@@ -6,6 +6,7 @@ import { reverseGeocode } from '../../utils/geocode'
 import { compressPhoto } from '../../utils/photoCompress'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import TileLayerToggle from '../../components/TileLayerToggle'
 import { Locate, Camera, X, Image as ImageIcon } from 'lucide-react'
 
 const DEFAULT_CENTER = [6.5244, 3.3792] // Lagos
@@ -25,6 +26,7 @@ export default function RiderHome() {
   // Map refs
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const [mapInstance, setMapInstance] = useState(null)
   const markerRef = useRef(null)
   const isMapValidRef = useRef(true) // Track if map is still valid
   // Use a ref for pin-locked state so the Leaflet 'move' closure always reads the current value
@@ -78,6 +80,7 @@ export default function RiderHome() {
     const marker = L.marker(DEFAULT_CENTER, { icon: blackPinIcon }).addTo(map)
     markerRef.current = marker
     mapRef.current = map
+    setMapInstance(map)
 
     updateCode(DEFAULT_CENTER[0], DEFAULT_CENTER[1])
 
@@ -212,6 +215,11 @@ const handleRequest = () => {
       {/* ── Map column ── */}
       <div className="relative flex-1 min-w-0">
         <div ref={mapContainer} className="w-full h-full" />
+
+        {/* Tile layer toggle */}
+        <div className="absolute top-4 left-4 z-[1000]">
+          <TileLayerToggle map={mapInstance} />
+        </div>
 
         {/* Crosshair — hidden when mobile sheet is open (pin is locked, map doesn't update) */}
         {!sheetOpen && (

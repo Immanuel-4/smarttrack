@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit, getDoc } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, limit, getDoc, getDocs } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -14,6 +14,36 @@ export default function IncomingRequest() {
   const [current, setCurrent] = useState(0)
   const [accepting, setAccepting] = useState(false)
   const [riderPhones, setRiderPhones] = useState({})
+  const [checkingActive, setCheckingActive] = useState(true)
+
+  // Check if driver already has an active trip — if so, redirect to navigate
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+
+    const checkActiveTrip = async () => {
+      try {
+        const q = query(
+          collection(db, 'trips'),
+          where('driverId', '==', user.uid),
+          where('status', 'in', ['ACCEPTED', 'IN_PROGRESS']),
+          limit(1),
+        )
+        const snap = await getDocs(q)
+        if (cancelled) return
+        if (!snap.empty) {
+          navigate('/driver/navigate', { state: { tripId: snap.docs[0].id } })
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to check active trip:', err)
+      }
+      if (!cancelled) setCheckingActive(false)
+    }
+
+    checkActiveTrip()
+    return () => { cancelled = true }
+  }, [user, navigate])
 
   useEffect(() => {
     const q = query(
@@ -68,6 +98,17 @@ export default function IncomingRequest() {
 
   const handleDecline = () => {
     setCurrent(i => (i + 1 < requests.length ? i + 1 : 0))
+  }
+
+  if (checkingActive) {
+    return (
+      <div className="h-full flex items-center justify-center bg-white">
+        <div className="text-center p-8 max-w-sm">
+          <Radio size={32} strokeWidth={1} className="text-zinc-300 mx-auto mb-4 animate-pulse" />
+          <p className="text-sm font-medium text-zinc-900 mb-1">Checking active trips…</p>
+        </div>
+      </div>
+    )
   }
 
   if (requests.length === 0) {

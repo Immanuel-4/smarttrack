@@ -1,11 +1,12 @@
 // Destination selection screen - reuses pin-drop UI from PinAdjust.jsx
 // Simplified version: no photo/note, just coordinates, plus_code, area_label
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import { encodePlusCode } from '../../utils/plusCode'
 import { useTrip } from '../../context/useTrip'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import TileLayerToggle from '../../components/TileLayerToggle'
 import { ArrowLeft } from 'lucide-react'
 
 export default function DestinationSelect() {
@@ -13,12 +14,18 @@ export default function DestinationSelect() {
   const { destination, setDestination } = useTrip()
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const [mapInstance, setMapInstance] = useState(null)
   const isMapValidRef = useRef(true)
   const [plusCode, setPlusCode] = useState('')
+  const [userLocation, setUserLocation] = useState(null)
 
-  const initCoords = destination?.coordinates
-    ? [destination.coordinates.lat, destination.coordinates.lng]
-    : [6.5244, 3.3792]
+  const DEFAULT_CENTER = [6.5244, 3.3792] // Lagos fallback
+
+  const initCoords = useMemo(() => {
+    return destination?.coordinates
+      ? [destination.coordinates.lat, destination.coordinates.lng]
+      : userLocation || DEFAULT_CENTER
+  }, [destination?.coordinates?.lat, destination?.coordinates?.lng, userLocation])
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
@@ -29,12 +36,13 @@ export default function DestinationSelect() {
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
+    setMapInstance(map)
 
     const initialCode = encodePlusCode(initCoords[0], initCoords[1])
     setPlusCode(initialCode)
 
     requestAnimationFrame(() => {
-      map.invalidateSize()
+      if (isMapValidRef.current) map.invalidateSize()
     })
     const resizeTimer = setTimeout(() => {
       if (isMapValidRef.current) map.invalidateSize()
@@ -52,7 +60,7 @@ export default function DestinationSelect() {
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [initCoords])
 
   const handleConfirm = () => {
     const c = mapRef.current?.getCenter()
@@ -70,18 +78,13 @@ export default function DestinationSelect() {
 
   return (
     <div className="flex h-full min-h-0">
-      {/* Map column — fills available space on all screen sizes */}
       <div className="relative flex-1 min-w-0">
         <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
-
-        {/* Crosshair */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[999]">
           <div className="w-px h-10 bg-zinc-900 absolute opacity-70" />
           <div className="h-px w-10 bg-zinc-900 absolute opacity-70" />
           <div className="w-4 h-4 border-2 border-zinc-900 rounded-full absolute bg-white" />
         </div>
-
-        {/* Back button */}
         <button
           onClick={() => navigate(-1)}
           aria-label="Go back"
@@ -89,20 +92,20 @@ export default function DestinationSelect() {
         >
           <ArrowLeft size={18} strokeWidth={1.5} />
         </button>
+        <div className="absolute top-4 right-4 z-[1000]">
+          <TileLayerToggle map={mapInstance} />
+        </div>
       </div>
 
-      {/* Desktop side panel */}
       <div className="hidden md:flex flex-col w-80 lg:w-96 bg-white border-l border-zinc-200 shrink-0">
         <div className="p-5 border-b border-zinc-100">
           <h1 className="text-lg font-medium text-zinc-900 mb-1">Select destination</h1>
           <p className="text-sm text-zinc-600">Pan the map to set where you&apos;re going</p>
         </div>
-
         <div className="p-5 border-b border-zinc-100">
           <p className="text-sm font-medium text-zinc-600 uppercase tracking-wide mb-2">Location code</p>
           <PlusCodeChip code={plusCode} size="lg" />
         </div>
-
         <div className="mt-auto p-5 border-t border-zinc-100">
           <button onClick={handleConfirm} className="btn-primary">
             Confirm destination
@@ -110,7 +113,6 @@ export default function DestinationSelect() {
         </div>
       </div>
 
-      {/* Mobile bottom panel — sits above the tab bar (64px) */}
       <div
         className="md:hidden fixed inset-x-0 z-[1000] bg-white border-t border-zinc-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
         style={{ bottom: '64px' }}

@@ -14,33 +14,45 @@ A modern ride-sharing platform built with React that connects riders with driver
 - **Trip History**: View past trips and ratings
 - **Trip Cancellation**: Cancel active trips while searching for driver or after driver acceptance
 - **Driver Confirmation**: Confirm meeting with driver to complete trip
+- **Trip Persistence**: Active trips survive page refresh — automatically recovered from Firestore
 
 ### For Drivers
 - **Request Management**: View and accept incoming ride requests
 - **Smart Matching**: Automatic driver matching based on distance and rating
+- **Single-Trip Enforcement**: Drivers can only accept one trip at a time — automatically redirected to active navigation
 - **Dual-Phase Navigation**: Navigate to pickup location, then to destination
 - **Map Options**: Toggle between satellite imagery and street maps
 - **Rider Communication**: View rider phone numbers and call riders directly
 - **Arrival Confirmation**: Confirm arrival at pickup with call rider prompt
-- **Trip Completion**: Trips completed when rider confirms meeting
+- **Trip Completion**: Trips completed when rider confirms meeting, or driver can manually complete
+- **Driver Trip Completion**: Drivers can close a trip at any time with a "Complete Trip" button
+- **Offline Navigation**: Cached trip data for offline navigation with connectivity indicator
 
 ### System Features
 - **User Authentication**: Firebase-based authentication with email/password
+- **Demo Mode**: Toggle between Rider and Driver views without changing auth role (via DemoBar)
 - **Real-time Updates**: Firestore real-time database for live trip status
-- **Offline Support**: Cached trip data for offline navigation
-- **Phone Verification**: Required phone numbers for all users
+- **Offline Support**: Cached trip data for offline navigation with live/cache data source indicators
+- **Phone Verification**: Required phone numbers for all users with dismissible prompt
 - **Driver Matching**: Distance-based driver matching with rating tiebreaker
 - **Fare Calculation**: Automatic fare estimation based on distance
 - **Security Rules**: Firestore security rules for data access control
 - **Responsive Design**: Mobile-first UI with desktop support
+- **Draggable Bottom Sheets**: Google Maps-style draggable bottom sheets for trip details
+- **Free-Pan Maps**: Interactive maps with manual panning and re-center capability
+- **Tile Layer Toggle**: Switch between standard and satellite map views
+- **Trip Completion Receipt**: Driver fare receipt screen when trip is completed
+- **Reverse Geocoding**: Automatic area label resolution via Nominatim API
+- **Plus Code Integration**: Open Location Code for precise location identification
+- **Vercel Deployment**: Ready for deployment with Vercel configuration
 
 ## Technology Stack
 
 ### Frontend
 - **React 19**: Modern React with hooks and functional components
-- **Vite**: Fast build tool and development server
-- **React Router**: Client-side routing
-- **TailwindCSS**: Utility-first CSS framework
+- **Vite 8**: Fast build tool and development server
+- **React Router 7**: Client-side routing
+- **TailwindCSS 3**: Utility-first CSS framework
 - **Lucide React**: Icon library
 
 ### Maps & Location
@@ -48,11 +60,17 @@ A modern ride-sharing platform built with React that connects riders with driver
 - **OpenStreetMap**: Standard street map tiles
 - **Esri World Imagery**: Satellite/aerial imagery tiles
 - **Open Location Code**: Plus Codes for location identification
+- **Nominatim API**: Reverse geocoding for area labels
+- **OSRM API**: Road-following route visualization
 
 ### Backend Services
 - **Firebase Authentication**: User authentication and authorization
 - **Firebase Firestore**: NoSQL real-time database
 - **Geolocation API**: Browser-based GPS positioning
+
+### Testing & Quality
+- **Vitest 4**: Unit testing framework
+- **ESLint 10**: Code linting with React hooks plugin
 
 ## Installation
 
@@ -104,56 +122,83 @@ A modern ride-sharing platform built with React that connects riders with driver
    npm run test
    ```
 
+### Vercel Deployment
+
+The project includes a `vercel.json` configuration for easy deployment. Connect your GitHub repository to Vercel and add the Firebase environment variables in the Vercel dashboard.
+
 ## Project Structure
 
 ```
 smarttrack/
+├── public/                      # Static assets
+│   ├── favicon.svg
+│   └── icons.svg
 ├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── BottomNav.jsx
-│   │   ├── DemoBar.jsx
-│   │   ├── MapView.jsx
-│   │   ├── PlusCodeChip.jsx
-│   │   └── Sidebar.jsx
-│   ├── context/             # React context providers
-│   │   ├── AuthContext.jsx
-│   │   ├── authContext.jsx
-│   │   └── useAuth.js
-│   ├── pages/               # Page components
-│   │   ├── driver/          # Driver-specific pages
-│   │   │   ├── DriverHome.jsx
-│   │   │   ├── IncomingRequest.jsx
-│   │   │   └── Navigate.jsx
-│   │   ├── rider/           # Rider-specific pages
-│   │   │   ├── ActiveTrip.jsx
-│   │   │   ├── Annotate.jsx
-│   │   │   ├── DestinationSelect.jsx
-│   │   │   ├── PinAdjust.jsx
-│   │   │   ├── RequestSummary.jsx
-│   │   │   └── RiderHome.jsx
-│   │   ├── shared/          # Shared pages
-│   │   │   ├── Account.jsx
-│   │   │   ├── Login.jsx
-│   │   │   └── Register.jsx
-│   │   └── Landing.jsx
-│   ├── utils/               # Utility functions
-│   │   ├── __tests__/       # Unit tests
+│   ├── components/              # Reusable UI components
+│   │   ├── BottomNav.jsx        # Mobile bottom navigation bar
+│   │   ├── BottomSheet.jsx      # Draggable bottom sheet component
+│   │   ├── DemoBar.jsx          # Demo mode toggle bar (Rider/Driver view)
+│   │   ├── DriverLayout.jsx     # Layout wrapper for /driver routes
+│   │   ├── MapView.jsx          # Reusable map component
+│   │   ├── PlusCodeChip.jsx     # Plus Code display chip
+│   │   ├── RiderLayout.jsx      # Layout wrapper for /rider routes
+│   │   ├── Sidebar.jsx          # Desktop sidebar navigation
+│   │   └── TileLayerToggle.jsx  # Map tile layer toggle (standard/satellite)
+│   ├── context/                 # React context providers
+│   │   ├── authContext.js       # Raw AuthContext object
+│   │   ├── AuthContext.jsx      # AuthProvider component
+│   │   ├── useAuth.js           # useAuth() hook
+│   │   ├── tripContext.js       # Raw TripContext object
+│   │   ├── TripContext.jsx      # TripProvider component
+│   │   ├── useTrip.js           # useTrip() hook
+│   │   ├── demoContext.js       # Raw DemoContext object
+│   │   ├── DemoContext.jsx      # DemoProvider component
+│   │   └── useDemo.js           # useDemo() hook
+│   ├── firebase/
+│   │   └── config.js            # Firebase configuration
+│   ├── hooks/                   # Custom React hooks
+│   ├── pages/                   # Page components
+│   │   ├── Login.jsx            # Login page
+│   │   ├── Register.jsx         # Registration page
+│   │   ├── driver/              # Driver-specific pages
+│   │   │   ├── DriverHome.jsx   # Driver home/map view
+│   │   │   ├── IncomingRequest.jsx  # Incoming trip requests
+│   │   │   └── Navigate.jsx     # Navigation with dual-phase routing
+│   │   ├── rider/               # Rider-specific pages
+│   │   │   ├── ActiveTrip.jsx   # Active trip tracking
+│   │   │   ├── Annotate.jsx     # Pickup photo/notes
+│   │   │   ├── DestinationSelect.jsx  # Destination pin selection
+│   │   │   ├── PinAdjust.jsx    # Pickup pin adjustment
+│   │   │   ├── RequestSummary.jsx     # Trip request summary
+│   │   │   └── RiderHome.jsx    # Rider home/map view
+│   │   └── shared/              # Shared pages
+│   │       ├── Account.jsx      # User account/profile
+│   │       └── TripHistory.jsx  # Trip history
+│   ├── utils/                   # Utility functions
+│   │   ├── __tests__/           # Unit tests
 │   │   │   ├── distance.test.js
 │   │   │   ├── fare.test.js
 │   │   │   └── matchDriver.test.js
-│   │   ├── distance.js
-│   │   ├── fare.js
-│   │   ├── matchDriver.js
-│   │   ├── photoCompress.js
-│   │   └── tripCache.js
-│   ├── firebase/            # Firebase configuration
-│   │   └── config.js
-│   ├── App.jsx              # Root component with routing
-│   └── main.jsx             # Application entry point
-├── public/                  # Static assets
+│   │   ├── distance.js          # Haversine distance calculation
+│   │   ├── fare.js              # Fare calculation
+│   │   ├── geocode.js           # Reverse geocoding (Nominatim API)
+│   │   ├── matchDriver.js       # Driver matching algorithm
+│   │   ├── photoCompress.js     # Photo compression utility
+│   │   ├── plusCode.js          # Plus Code encode/decode utilities
+│   │   └── tripCache.js         # Trip caching for offline support
+│   ├── App.jsx                  # Root component with routing
+│   ├── index.css                # Global styles / TailwindCSS
+│   └── main.jsx                 # Application entry point
+├── .gitignore
+├── eslint.config.js             # ESLint configuration
+├── firestore.rules              # Firestore security rules
+├── index.html                   # HTML entry point
 ├── package.json
-├── tailwind.config.js
-└── vite.config.js
+├── postcss.config.js            # PostCSS configuration
+├── tailwind.config.js           # TailwindCSS configuration
+├── vercel.json                  # Vercel deployment configuration
+├── vite.config.js               # Vite configuration
+└── vitest.config.js             # Vitest configuration
 ```
 
 ## Database Schema
@@ -276,13 +321,15 @@ PENDING → ACCEPTED (toPickup) → IN_PROGRESS (waiting for rider confirmation)
 1. **Rider Cancellation**: Riders can cancel active trips while searching for driver or after driver acceptance
 2. **Driver Release**: When rider cancels, driver is released back to active pool (driverId set to null)
 3. **Driver Arrival**: When driver arrives at pickup, a modal prompts them to call the rider
-4. **Rider Confirmation**: Trip completes when rider confirms meeting with driver (not manual driver completion)
-5. **Real-time Sync**: All status changes sync instantly between rider and driver apps via Firestore
+4. **Rider Confirmation**: Trip completes when rider confirms meeting with driver
+5. **Driver Completion**: Driver can also complete the trip manually via "Complete Trip" button
+6. **Real-time Sync**: All status changes sync instantly between rider and driver apps via Firestore
 
 **Technical Implementation:**
 - Cancellation in `ActiveTrip.jsx` with `cancelledBy: 'RIDER'` and `driverId: null`
 - Driver arrival modal in `Navigate.jsx` with phone call functionality via `tel:` protocol
 - Rider confirmation button in `ActiveTrip.jsx` for IN_PROGRESS status
+- Driver "Complete Trip" button in `Navigate.jsx` for IN_PROGRESS status
 - Real-time listener in `Navigate.jsx` auto-navigates driver home when trip completes
 - Firestore real-time listeners ensure instant state synchronization
 
@@ -300,8 +347,133 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
 → Driver clicks "Confirm Pickup" → Status: IN_PROGRESS
 → Rider sees "Confirm Meeting Driver" button
 → Rider clicks "Confirm Meeting Driver" → Status: COMPLETED
-→ Driver auto-navigated to home screen
+→ Driver sees trip completion receipt with fare
+→ Driver navigates to requests screen
 ```
+
+**Driver Completion Flow (alternative):**
+```
+Driver clicks "Complete Trip" → Status: COMPLETED
+→ Driver navigated to requests screen
+→ Rider sees "Trip completed" status
+```
+
+### Single-Trip Enforcement
+
+**How it works:**
+1. When a driver navigates to the IncomingRequest page, the system checks Firestore for any existing ACCEPTED or IN_PROGRESS trip assigned to that driver
+2. If an active trip exists, the driver is automatically redirected to the Navigate page
+3. This prevents drivers from accepting multiple trips simultaneously
+4. The check runs on mount and only shows the request list if no active trip is found
+
+**Technical Implementation:**
+- Firestore query in `IncomingRequest.jsx` with `where('driverId', '==', user.uid)` and `where('status', 'in', ['ACCEPTED', 'IN_PROGRESS'])`
+- Redirect via `navigate('/driver/navigate', { state: { tripId } })`
+- Loading state (`checkingActive`) shown while query is in progress
+- Same query pattern used in `Navigate.jsx` for trip recovery on page refresh
+
+### Trip Persistence (Page Refresh Recovery)
+
+**How it works:**
+1. Both rider and driver apps can recover active trips after page refresh
+2. On mount, if no active trip ID is in context state, a Firestore query is executed
+3. The query looks for trips matching the user's ID with active statuses
+4. If found, the trip is restored to context and the UI resumes normally
+
+**Technical Implementation:**
+- Rider recovery in `ActiveTrip.jsx`: queries `riderId == user.uid` with status `['PENDING', 'ACCEPTED', 'IN_PROGRESS']`
+- Driver recovery in `Navigate.jsx`: queries `driverId == user.uid` with status `['ACCEPTED', 'IN_PROGRESS']`
+- Offline fallback: `loadCachedTrip()` from `tripCache.js` for drivers
+- Loading states shown while recovery is in progress
+
+### UI/UX Enhancements
+
+**Draggable Bottom Sheet:**
+- Google Maps-style draggable bottom sheet component for trip details
+- Touch and mouse event listeners for smooth drag interactions
+- Snap-to-position behavior (collapsed/expanded states)
+- Configurable min/max heights
+- Visual drag handle indicator with chevron icon
+
+**Technical Implementation:**
+- Component in `src/components/BottomSheet.jsx`
+- Touch events: `onTouchStart`, `onTouchMove`, `onTouchEnd`
+- Mouse events: `onMouseDown`, `onMouseMove`, `onMouseUp`
+- CSS transforms for smooth drag feedback
+- TailwindCSS responsive design
+- Pass-through props for child components
+
+**Free-Pan Map with Re-center:**
+- Eliminates aggressive auto-centering during user exploration
+- Leaflet `movestart` event listener detects manual panning
+- Floating "Re-center" button appears when user pans away
+- Smooth `flyTo()` animation when re-centering
+- Auto-center lock resets after re-center
+
+**Technical Implementation:**
+- `isPannedAway` state tracks manual panning
+- `autoCenter` prop enables/disables auto-centering
+- Conditional auto-centering based on user interaction
+- Floating button with Navigation icon
+- 1-second smooth animation with easing
+
+**Tile Layer Toggle:**
+- Switch between Standard (OpenStreetMap) and Satellite (Esri World Imagery)
+- Floating toggle button with Layers icon
+- Preserves all map overlays, markers, and polylines
+- Works globally across all map instances
+- Mobile-first responsive design
+
+**Technical Implementation:**
+- `tileType` state: 'standard' | 'satellite'
+- Tile layer removal and replacement on toggle
+- Ref-based tile layer management
+- Dynamic attribution based on tile provider
+- Floating button positioned top-left
+
+**Trip Completion Receipt:**
+- Driver sees clean receipt screen when trip is completed
+- Displays calculated fare (₦500 base + ₦100/km)
+- Non-mappable summary screen (map removed)
+- "View New Requests" action button
+- Celebratory UI with checkmark icon
+
+**Technical Implementation:**
+- `showCompletedScreen` state in Navigate.jsx
+- Firestore `onSnapshot` detects COMPLETED status
+- Conditional rendering replaces map with receipt
+- Fare calculation from trip.estimatedFare
+- Smooth transition from navigation to receipt
+
+**Demo Mode:**
+- Toggle between Rider and Driver views without changing Firebase auth role
+- Useful for demonstrations and testing
+- Persistent across navigation via DemoContext
+- Visual toggle in the top DemoBar
+
+**Technical Implementation:**
+- `DemoContext` with `demoView` state ('rider' | 'driver' | null)
+- `DemoBar` component with Rider/Driver toggle buttons
+- `useDemo()` hook for consuming demo state
+- Effective view determined by `demoView || profile?.userType`
+
+**Offline Detection:**
+- Driver layout monitors online/offline status
+- Shows offline banner when connectivity is lost
+- Navigation data loaded from cache when offline
+- Live/cache data source indicators in Navigate.jsx
+
+**Technical Implementation:**
+- `navigator.onLine` and `online`/`offline` event listeners in DriverLayout.jsx
+- `dataSource` state ('firestore' | 'cache') in Navigate.jsx
+- Wifi/WifiOff icons with status labels
+- `tripCache.js` for localStorage caching
+
+**Phone Number Prompt:**
+- Dismissible banner when user profile is missing a phone number
+- Shown on both Rider and Driver layouts
+- Dismissal persisted in sessionStorage
+- Encourages users to add contact information
 
 ### Fare Calculation
 **How it works:**
@@ -347,6 +519,32 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
 - Optional feature - rider can skip and continue without photo
 - Photo displayed in RequestSummary and ActiveTrip for driver reference
 
+### Reverse Geocoding
+**How it works:**
+1. When a rider drops a pin on the map, the system fetches a human-readable area label
+2. The Nominatim API is called with the GPS coordinates
+3. The response is parsed to extract the most specific location name
+4. The area label is stored in the trip document for display
+
+**Technical Implementation:**
+- Function in `src/utils/geocode.js`
+- Priority order: suburb → neighbourhood → city_district → town → city → county → display_name
+- Error handling returns 'Unknown area' on failure
+- Used in PinAdjust.jsx and DestinationSelect.jsx
+
+### Plus Code Integration
+**How it works:**
+1. When a location is selected, a 10-digit Plus Code is generated from the GPS coordinates
+2. The Plus Code provides a human-readable location identifier
+3. Plus Codes are displayed in chips throughout the app
+4. Codes can be decoded back to coordinates if needed
+
+**Technical Implementation:**
+- Wrapper functions in `src/utils/plusCode.js`
+- Uses `open-location-code` library
+- Functions: `encodePlusCode(lat, lng)`, `decodePlusCode(code)`, `isValidPlusCode(code)`
+- PlusCodeChip component for consistent display
+
 ### Map Integration
 **How it works:**
 1. Interactive Leaflet maps throughout the application
@@ -362,7 +560,7 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
   - OpenStreetMap: Standard street maps (default)
   - Esri World Imagery: Satellite/aerial imagery (toggleable)
 - Real-time location tracking via Geolocation API
-- Route visualization using Leaflet polylines
+- Route visualization using OSRM API with Leaflet polylines
 - Plus Code integration via Open Location Code library
 - Default center: Lagos, Nigeria (6.5244, 3.3792)
 - Maximum zoom level: 19 for precise location selection
@@ -396,7 +594,7 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
 - PENDING: Trip created, awaiting driver acceptance
 - ACCEPTED: Driver assigned, approaching pickup
 - IN_PROGRESS: Driver has arrived, waiting for rider to confirm meeting
-- COMPLETED: Trip finished (confirmed by rider)
+- COMPLETED: Trip finished (confirmed by rider or driver)
 - CANCELLED: Trip cancelled by rider or driver
 
 ### User Experience
@@ -424,9 +622,28 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
 - `VITE_DEV_BYPASS`: Set to 'true' to bypass Firebase authentication for development
 - All Firebase credentials should be stored in `.env.local` (not committed to git)
 
+### Demo Mode
+The application includes a **Demo Mode** feature that allows toggling between Rider and Driver views without changing the user's Firebase auth role. This is useful for:
+- Demonstrating the app to stakeholders
+- Testing both rider and driver flows with a single account
+- Development and debugging
+
+**How to use:**
+1. Log in with any account
+2. Use the "View as" toggle in the top DemoBar to switch between Rider and Driver views
+3. The toggle persists across navigation within the session
+
 ### Security Notes
 - **DEV BYPASS Protection**: The application includes a build-time safety check that prevents VITE_DEV_BYPASS from functioning in production builds. If DEV_BYPASS is enabled during a production build, a console error is logged and the bypass is automatically disabled to prevent authentication bypass in production environments.
 - **Firestore Security Rules**: The application uses Firestore security rules to enforce data access control. Users can only read/write their own documents, trip updates are restricted to assigned rider/driver, and rider phone numbers are protected until trip acceptance. See `firestore.rules` for detailed rule definitions.
+
+### Context Architecture
+The app uses a three-file pattern for each context:
+1. **Raw context object** (e.g., `authContext.js`) — creates and exports the React context
+2. **Provider component** (e.g., `AuthContext.jsx`) — provides state management logic
+3. **Hook** (e.g., `useAuth.js`) — convenience hook for consuming the context
+
+This pattern keeps imports circular-free and separates concerns cleanly.
 
 ### Map Configuration
 - Default center coordinates: Lagos, Nigeria (6.5244, 3.3792)
@@ -437,6 +654,7 @@ Driver clicks "I've arrived" → Modal appears with "Call Rider" button
 - Photo compression reduces payload size before upload
 - Trip caching minimizes Firestore reads
 - Lazy loading of map components for faster initial render
+- Route fetch throttled to once every 30 seconds
 
 ## Testing
 

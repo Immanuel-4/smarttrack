@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { doc, onSnapshot, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore'
+import { collection, query, where, limit, getDocs, doc, onSnapshot, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore'
 import L from 'leaflet'
 import { db } from '../../firebase/config'
 import { useTrip } from '../../context/useTrip'
+import { useAuth } from '../../context/useAuth'
 import { haversineKm } from '../../utils/distance'
 import PlusCodeChip from '../../components/PlusCodeChip'
+import TileLayerToggle from '../../components/TileLayerToggle'
 import { Car, User, X, Check } from 'lucide-react'
 
 const STATUS_CONFIG = {
@@ -18,17 +20,52 @@ const STATUS_CONFIG = {
 
 export default function ActiveTrip() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { activeTrip, setActiveTrip, pickupLocation, destination } = useTrip()
   const [trip, setTrip] = useState(null)
   const [driverProfile, setDriverProfile] = useState(null)
   const [driverPos, setDriverPos] = useState(null)
   const [eta, setEta] = useState(null)
+  const [resolving, setResolving] = useState(false)
+  const [mapInstance, setMapInstance] = useState(null)
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const driverMarkerRef = useRef(null)
   const pickupMarkerRef = useRef(null)
   const destinationMarkerRef = useRef(null)
   const mockIntervalRef = useRef(null)
+
+  // Recover active trip from Firestore if context was lost (e.g. page refresh)
+  useEffect(() => {
+    if (activeTrip?.id || !user) return
+    let cancelled = false
+
+    const recoverActiveTrip = async () => {
+      setResolving(true)
+      try {
+        const q = query(
+          collection(db, 'trips'),
+          where('riderId', '==', user.uid),
+          where('status', 'in', ['PENDING', 'ACCEPTED', 'IN_PROGRESS']),
+          limit(1),
+        )
+        const snap = await getDocs(q)
+        if (cancelled) return
+        if (!snap.empty) {
+          const data = { id: snap.docs[0].id, ...snap.docs[0].data() }
+          setActiveTrip({ id: data.id })
+          setTrip(data)
+        }
+      } catch (err) {
+        console.warn('Failed to recover active trip:', err)
+      } finally {
+        if (!cancelled) setResolving(false)
+      }
+    }
+
+    recoverActiveTrip()
+    return () => { cancelled = true }
+  }, [user, activeTrip?.id, setActiveTrip])
 
   useEffect(() => {
     if (!activeTrip?.id) return
@@ -83,6 +120,7 @@ export default function ActiveTrip() {
       attribution: '© OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map)
     mapRef.current = map
+    setMapInstance(map)
 
     const pin = L.marker([coords.lat, coords.lng]).addTo(map)
     pin.bindPopup('Your pickup').openPopup()
@@ -143,6 +181,17 @@ export default function ActiveTrip() {
   const status = trip?.status || 'PENDING'
   const statusInfo = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
 
+  if (resolving) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center p-8">
+          <Car size={40} strokeWidth={1} className="text-zinc-300 mx-auto mb-4 animate-pulse" />
+          <p className="font-medium text-zinc-900 mb-1 text-sm">Loading your trip…</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!activeTrip?.id) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -157,7 +206,12 @@ export default function ActiveTrip() {
 
   return (
     <div className="relative h-full flex flex-col">
-      <div ref={mapContainer} className="flex-1" />
+      <div className="relative flex-1">
+        <div ref={mapContainer} className="w-full h-full" />
+        <div className="absolute top-4 left-4 z-10">
+          <TileLayerToggle map={mapInstance} />
+        </div>
+      </div>
 
       {/* Info panel */}
       <div className="bg-white border-t border-zinc-200 p-4 space-y-3 z-10">

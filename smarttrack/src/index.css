@@ -58,3 +58,19 @@
   height: 100%;
   width: 100%;
 }
+
+/* Collapse the attribution control into a compact box */
+.leaflet-control-attribution {
+  max-width: 30px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.3s ease;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+/* Expand it when hovered or focused */
+.leaflet-control-attribution:hover {
+  max-width: 100%;
+  white-space: normal;
+}

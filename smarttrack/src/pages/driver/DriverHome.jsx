@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../context/useAuth'
 import { Radio, TrendingUp, Clock } from 'lucide-react'
+import TileLayerToggle from '../../components/TileLayerToggle'
 
 export default function DriverHome() {
   const { user, profile, setProfile } = useAuth()
@@ -11,6 +12,7 @@ export default function DriverHome() {
   const [earnings, setEarnings] = useState(0)
   const [recentTrips, setRecentTrips] = useState([])
   const [toggling, setToggling] = useState(false)
+  const [mapInstance, setMapInstance] = useState(null)
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const driverMarkerRef = useRef(null)
@@ -40,6 +42,7 @@ export default function DriverHome() {
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
+    setMapInstance(map)
 
     const driverIcon = L.divIcon({
       className: '',
@@ -96,6 +99,11 @@ export default function DriverHome() {
       {/* Map */}
       <div className="flex-1 relative min-h-48">
         <div ref={mapContainer} className="w-full h-full" />
+
+        {/* Tile layer toggle */}
+        <div className="absolute top-4 left-4 z-[1000]">
+          <TileLayerToggle map={mapInstance} />
+        </div>
 
         {/* Online toggle overlay */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
